@@ -1,7 +1,8 @@
 FROM node:20-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && npm install -g pnpm
+# Use corepack to install/activate pnpm (more reliable inside official node images)
+RUN corepack enable && corepack prepare pnpm@10.17.0 --activate
 
 # BUILD STAGE
 FROM base AS build
