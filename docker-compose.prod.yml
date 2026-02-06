@@ -25,6 +25,9 @@ services:
   # NestJS API
   api:
     image: ${DOCKERHUB_USERNAME}/aether-api:latest
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
     container_name: aether-api
     restart: always
     environment:
@@ -55,6 +58,9 @@ services:
   # Nuxt Web Application
   web:
     image: ${DOCKERHUB_USERNAME}/aether-web:latest
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
     container_name: aether-web
     restart: always
     environment:
