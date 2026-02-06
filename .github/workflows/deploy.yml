@@ -2,39 +2,90 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_API: ${{ secrets.DOCKERHUB_USERNAME }}/aether-api
+  IMAGE_WEB: ${{ secrets.DOCKERHUB_USERNAME }}/aether-web
 
 jobs:
-  deploy:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.17.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint code
+        run: pnpm lint
+
+      - name: Run tests (API)
+        run: pnpm --filter api test
+
+  build-images:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push API
-        uses: docker/build-push-action@v4
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./apps/api/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/aether-api:latest
+          tags: |
+            ${{ env.IMAGE_API }}:latest
+            ${{ env.IMAGE_API }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_API }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_API }}:buildcache,mode=max
 
-      - name: Build and push Web
-        uses: docker/build-push-action@v4
+      - name: Build and push Web image
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./apps/web/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/aether-web:latest
+          tags: |
+            ${{ env.IMAGE_WEB }}:latest
+            ${{ env.IMAGE_WEB }}:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_WEB }}:buildcache
+          cache-to: type=registry,ref=${{ env.IMAGE_WEB }}:buildcache,mode=max
+
+  deploy:
+    needs: build-images
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@master
@@ -42,8 +93,34 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
           script: |
-            cd ~/aether
+            set -e
+            echo "🚀 Starting deployment..."
+            cd ${{ secrets.EC2_APP_DIR }}
+            
+            echo "📥 Pulling latest code..."
+            git pull origin main
+            
+            echo "🐳 Pulling latest Docker images..."
             docker compose pull
+            
+            echo "🔄 Stopping old containers..."
+            docker compose down
+            
+            echo "▶️  Starting new containers..."
             docker compose up -d
+            
+            echo "🧹 Cleaning up old images..."
             docker image prune -f
+            
+            echo "✅ Deployment completed successfully!"
+            
+      - name: Notify Deployment Status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = context.payload.deployment.statuses[0]?.state || 'success';
+            const message = `Deployment ${status} on ${{ secrets.EC2_HOST }}`;
+            console.log(message);

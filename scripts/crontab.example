@@ -1,0 +1,18 @@
+# Aether Crontab Configuration
+# Add these lines to your crontab with: crontab -e
+# Run the setup on EC2 and replace /home/ubuntu/aether with your APP_DIR
+
+# Daily database backup at 2 AM
+0 2 * * * /home/ubuntu/aether/scripts/backup-db.sh >> /home/ubuntu/aether/logs/backup.log 2>&1
+
+# SSL certificate renewal at 3 AM (Let's Encrypt recommended)
+0 3 * * 0 /home/ubuntu/aether/scripts/renew-ssl.sh >> /home/ubuntu/aether/logs/ssl-renewal.log 2>&1
+
+# Health check every 5 minutes
+*/5 * * * * /home/ubuntu/aether/scripts/health-check.sh >> /home/ubuntu/aether/logs/health-check.log 2>&1
+
+# Prune Docker images and containers every Sunday at 4 AM
+0 4 * * 0 docker system prune -f >> /home/ubuntu/aether/logs/docker-prune.log 2>&1
+
+# Alternative if you want healthcheck every hour instead of every 5 minutes:
+# 0 * * * * /home/ubuntu/aether/scripts/health-check.sh >> /home/ubuntu/aether/logs/health-check.log 2>&1

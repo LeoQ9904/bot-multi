@@ -1,2 +1,57 @@
+# Dependencies
 node_modules
+pnpm-lock.yaml
+
+# Environment variables (store these securely!)
+.env
+.env.local
+.env.prod
+.env.*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist
+build
+.next
+.nuxt
+out
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker volumes and data
+postgres_data
+storage/
+backups/
+
+# SSL certificates (store in secrets)
+ssl/
+certbot/
+
+# Project docs (keep locally)
 PROJECT_PLAN.md
+
+# Testing
+coverage
+.jest-cache
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
