@@ -28,7 +28,21 @@ export class DynamicMemoryService {
     async saveMemory(userId: string, type: MemoryType, content: string): Promise<void> {
         const filePath = path.join(this.storagePath, `${userId}_${type}.md`);
         const timestamp = new Date().toISOString();
-        const entry = `\n## [${timestamp}]\n${content}\n\n---\n`;
+        
+        let entry = '';
+        switch (type) {
+            case MemoryType.TASK:
+                entry = `- [ ] ${content} _(${timestamp})_\n`;
+                break;
+            case MemoryType.REMINDER:
+                entry = `- 🔔 ${content} _(${timestamp})_\n`;
+                break;
+            case MemoryType.NOTE:
+                entry = `### ${new Date().toLocaleDateString('es-CO')}\n${content}\n\n`;
+                break;
+            default:
+                entry = `\n## [${timestamp}]\n${content}\n\n---\n`;
+        }
 
         try {
             await fs.appendFile(filePath, entry, 'utf8');
@@ -46,7 +60,28 @@ export class DynamicMemoryService {
         }
     }
 
-    async getAllMemories(userId: string): Promise<string> {
+    async updateTask(userId: string, taskIndex: number, completed: boolean): Promise<void> {
+        const filePath = path.join(this.storagePath, `${userId}_${MemoryType.TASK}.md`);
+        try {
+            const content = await fs.readFile(filePath, 'utf8');
+            const lines = content.split('\n');
+            let taskCount = 0;
+            
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].startsWith('- [')) {
+                    if (taskCount === taskIndex) {
+                        lines[i] = lines[i].replace(/- \[([ x])\]/, `- [${completed ? 'x' : ' '}]`);
+                        break;
+                    }
+                    taskCount++;
+                }
+            }
+            
+            await fs.writeFile(filePath, lines.join('\n'), 'utf8');
+        } catch (error) {
+            console.error('Error updating task:', error);
+        }
+    }
         let allMemories = '';
         for (const type of Object.values(MemoryType)) {
             const memory = await this.getMemory(userId, type as MemoryType);
@@ -57,7 +92,27 @@ export class DynamicMemoryService {
         return allMemories;
     }
 
-    detectMemoryType(prompt: string): MemoryType | null {
+    detectMemoryAction(prompt: string): { action: 'list' | 'add' | 'complete' | null, type: MemoryType | null } {
+        const lower = prompt.toLowerCase();
+        
+        // Detect list action
+        const listKeywords = ['listar', 'list', 'mostrar', 'show', 'ver', 'cuáles', 'qué tengo', 'mis'];
+        const isListAction = listKeywords.some(k => lower.includes(k));
+        
+        // Detect complete action
+        const completeKeywords = ['completar', 'complete', 'marcar', 'hecho', 'done', 'terminé', 'finished'];
+        const isCompleteAction = completeKeywords.some(k => lower.includes(k));
+        
+        const type = this.detectMemoryType(prompt);
+        
+        if (isListAction && type) return { action: 'list', type };
+        if (isCompleteAction && type === MemoryType.TASK) return { action: 'complete', type };
+        if (this.shouldSaveMemory(prompt) && type) return { action: 'add', type };
+        
+        return { action: null, type: null };
+    }
+
+    async getAllMemories(userId: string): Promise<string> {
         const lower = prompt.toLowerCase();
         
         const taskKeywords = ['tarea', 'task', 'hacer', 'to do', 'pendiente', 'pending'];

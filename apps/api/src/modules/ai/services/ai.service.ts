@@ -60,16 +60,17 @@ export class AIService {
         // 2. Get recent context from cache
         const recentContext = this.inMemCache.getRecentContext(conversationId);
 
-        // 3. Check if user wants to save memory
-        const shouldSave = this.dynamicMemory.shouldSaveMemory(prompt);
-        const memoryType = this.dynamicMemory.detectMemoryType(prompt);
+        // 3. Detect memory action
+        const memoryAction = this.dynamicMemory.detectMemoryAction(prompt);
 
-        // 4. Load relevant memories
+        // 4. Load relevant memories if listing
         let memoriesContext = '';
-        if (memoryType) {
-            const memories = await this.dynamicMemory.getMemory(userId, memoryType);
+        if (memoryAction.action === 'list' && memoryAction.type) {
+            const memories = await this.dynamicMemory.getMemory(userId, memoryAction.type);
             if (memories) {
-                memoriesContext = `\n\nYour ${memoryType}:\n${memories}`;
+                memoriesContext = `\n\nCurrent ${memoryAction.type}:\n${memories}`;
+            } else {
+                memoriesContext = `\n\nYou have no ${memoryAction.type} saved yet.`;
             }
         }
 
@@ -85,8 +86,10 @@ export class AIService {
         let systemInstructions = `You are ${identity.name}. ${identity.personality}\nToday is ${dateStr}.`;
 
         // Add memory management instructions
-        if (shouldSave) {
-            systemInstructions += `\n\nIMPORTANT: The user wants to save information. Extract the key information they want to remember and format it clearly. Confirm what you've saved.`;
+        if (memoryAction.action === 'add') {
+            systemInstructions += `\n\nIMPORTANT: The user wants to save a ${memoryAction.type}. Extract ONLY the core information (without timestamps or metadata) and confirm what you've saved. Be concise.`;
+        } else if (memoryAction.action === 'list') {
+            systemInstructions += `\n\nIMPORTANT: Show the user their ${memoryAction.type} in a clean, organized format. For tasks, preserve the checkbox format [ ] or [x]. For reminders, keep the bell emoji. For notes, show them chronologically. Be natural and friendly.`;
         }
 
         // Add strict anti-hallucination rules when search results are present
@@ -130,9 +133,15 @@ export class AIService {
             this.inMemCache.addToCache(conversationId, 'user', prompt);
             this.inMemCache.addToCache(conversationId, 'assistant', aiResponse);
 
-            // 8. Save to dynamic memory if needed
-            if (shouldSave && memoryType) {
-                await this.dynamicMemory.saveMemory(userId, memoryType, `${prompt}\n\nResponse: ${aiResponse}`);
+            // 8. Save to dynamic memory if adding
+            if (memoryAction.action === 'add' && memoryAction.type) {
+                // Extract clean content from prompt (remove trigger words)
+                const cleanContent = prompt
+                    .replace(/guardar|save|recordar|remember|anotar|note|agregar|add|crear|create|apuntar|write down/gi, '')
+                    .replace(/tarea|task|nota|reminder|recordatorio/gi, '')
+                    .replace(/:/g, '')
+                    .trim();
+                await this.dynamicMemory.saveMemory(userId, memoryAction.type, cleanContent);
             }
 
             return aiResponse;
