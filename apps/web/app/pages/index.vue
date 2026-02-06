@@ -3,8 +3,14 @@
     <div class="chat-messages" ref="scrollContainer">
       <div v-if="messages.length === 0" class="empty-state">
         <div class="welcome-card glass">
-          <h2>Bienvenido a Aether</h2>
-          <p>¿Cómo puedo asistirte hoy?</p>
+          <div class="welcome-icon">✨</div>
+          <h2>¡Hola! Soy Aether</h2>
+          <p>Tu asistente de IA personalizado. Puedo ayudarte con información, análisis y tareas del día a día.</p>
+          <div class="welcome-suggestions">
+            <span class="suggestion">💡 Hazme una pregunta</span>
+            <span class="suggestion">🔍 Busca información</span>
+            <span class="suggestion">📊 Analiza datos</span>
+          </div>
         </div>
       </div>
 
@@ -91,7 +97,13 @@ const sendMessage = async () => {
 @media (max-width: 768px) {
   .chat-container {
     padding: 0.5rem;
-    height: calc(100vh - 5rem);
+    height: 100dvh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-top: 5rem;
   }
 }
 
@@ -101,6 +113,12 @@ const sendMessage = async () => {
   padding-bottom: 2rem;
   scrollbar-width: thin;
   scrollbar-color: var(--glass-border) transparent;
+}
+
+@media (max-width: 768px) {
+  .chat-messages {
+    padding-bottom: 5rem;
+  }
 }
 
 .message {
@@ -153,8 +171,13 @@ const sendMessage = async () => {
 
 @media (max-width: 768px) {
   .chat-input-area {
-    margin-bottom: 1.5rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0.5rem;
     padding: 0.5rem 0.75rem;
+    z-index: 100;
   }
 }
 
@@ -214,9 +237,28 @@ const sendMessage = async () => {
 }
 
 .welcome-card {
-  padding: 3rem;
+  padding: 2rem;
   border-radius: 24px;
   text-align: center;
+  max-width: 500px;
+}
+
+@media (max-width: 768px) {
+  .welcome-card {
+    padding: 1.5rem;
+    margin: 0 0.5rem;
+  }
+}
+
+.welcome-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 .welcome-card h2 {
@@ -224,11 +266,44 @@ const sendMessage = async () => {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.75rem;
+}
+
+@media (max-width: 768px) {
+  .welcome-card h2 {
+    font-size: 1.5rem;
+  }
 }
 
 .welcome-card p {
   color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.welcome-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.suggestion {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .suggestion {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
 }
 
 .typing {

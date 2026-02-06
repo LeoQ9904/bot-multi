@@ -7,6 +7,7 @@
     </main>
 
     <LoadingOverlay :show="isLoading" :title="loadingTitle" :message="loadingMessage" />
+    <Toast />
 
     <!-- Login Overlay if not user -->
     <div v-if="!user && !loading" class="landing-page">

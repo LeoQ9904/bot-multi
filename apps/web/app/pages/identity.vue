@@ -44,6 +44,7 @@
 import { useIaService } from '~/services/ia.service';
 
 const { show: showLoading, hide: hideLoading } = useLoading();
+const { success, error } = useToast();
 const identity = ref({
   name: '',
   greeting: '',
@@ -83,11 +84,11 @@ const saveIdentity = async () => {
     const token = await user.value.getIdToken();
     const response = await useIaService().updateIdentity(identity.value, token);
     if (response) {
-      alert('¡Identidad guardada exitosamente!');
+      success('¡Identidad guardada exitosamente!');
     }
-  } catch (error) {
-    console.error('Failed to save identity', error);
-    alert('Error al guardar la identidad');
+  } catch (err) {
+    console.error('Failed to save identity', err);
+    error('Error al guardar la identidad');
   } finally {
     saving.value = false;
     hideLoading();
