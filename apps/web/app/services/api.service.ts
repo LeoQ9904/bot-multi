@@ -28,73 +28,77 @@ export interface ApiError {
 /**
  * Configuración base para las peticiones
  */
-const baseConfig: UseFetchOptions<any> = {
-    baseURL: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8080',
+const getBaseConfig = (): UseFetchOptions<any> => {
+    const config = useRuntimeConfig();
+    
+    return {
+        baseURL: config.public.apiBaseUrl || 'http://127.0.0.1:8080',
 
-    // Interceptor para agregar el token de autenticación
-    onRequest({ options }) {
-        const token = useCookie('auth_token').value;
+        // Interceptor para agregar el token de autenticación
+        onRequest({ options }) {
+            const token = useCookie('auth_token').value;
 
-        if (token) {
-            options.headers = {
-                ...options.headers,
-                Authorization: `Bearer ${token}`,
-            };
-        }
+            if (token) {
+                options.headers = {
+                    ...options.headers,
+                    Authorization: `Bearer ${token}`,
+                };
+            }
 
-        // Log de la petición en desarrollo
-        if (process.env.NODE_ENV === 'development') {
-            console.log('🚀 API Request:', options.method, options.baseURL + (options.path || ''));
-        }
-    },
+            // Log de la petición en desarrollo
+            if (config.public.nodeEnv === 'development') {
+                console.log('🚀 API Request:', options.method, options.baseURL + (options.path || ''));
+            }
+        },
 
-    // Interceptor para manejar respuestas exitosas
-    onResponse({ response }) {
-        if (process.env.NODE_ENV === 'development') {
-            console.log('✅ API Response:', response.status, response._data);
-        }
-    },
+        // Interceptor para manejar respuestas exitosas
+        onResponse({ response }) {
+            if (config.public.nodeEnv === 'development') {
+                console.log('✅ API Response:', response.status, response._data);
+            }
+        },
 
-    // Interceptor para manejar errores
-    onResponseError({ response }) {
-        const statusCode = response.status;
-        const errorData = response._data;
+        // Interceptor para manejar errores
+        onResponseError({ response }) {
+            const statusCode = response.status;
+            const errorData = response._data;
 
-        console.error('❌ API Error:', statusCode, errorData);
+            console.error('❌ API Error:', statusCode, errorData);
 
-        // Manejar errores específicos
-        switch (statusCode) {
-            case 401:
-                // Token expirado o inválido
-                console.warn('⚠️ Unauthorized - Redirecting to login');
-                const authToken = useCookie('auth_token');
-                authToken.value = null;
-                navigateTo('/');
-                break;
+            // Manejar errores específicos
+            switch (statusCode) {
+                case 401:
+                    // Token expirado o inválido
+                    console.warn('⚠️ Unauthorized - Redirecting to login');
+                    const authToken = useCookie('auth_token');
+                    authToken.value = null;
+                    navigateTo('/');
+                    break;
 
-            case 403:
-                console.warn('⚠️ Forbidden - Insufficient permissions');
-                break;
+                case 403:
+                    console.warn('⚠️ Forbidden - Insufficient permissions');
+                    break;
 
-            case 404:
-                console.warn('⚠️ Not Found');
-                break;
+                case 404:
+                    console.warn('⚠️ Not Found');
+                    break;
 
-            case 422:
-                console.warn('⚠️ Validation Error:', errorData.errors);
-                break;
+                case 422:
+                    console.warn('⚠️ Validation Error:', errorData.errors);
+                    break;
 
-            case 500:
-                console.error('⚠️ Server Error');
-                break;
+                case 500:
+                    console.error('⚠️ Server Error');
+                    break;
 
-            default:
-                console.error('⚠️ Unknown Error:', statusCode);
-        }
+                default:
+                    console.error('⚠️ Unknown Error:', statusCode);
+            }
 
-        // Mostrar notificación de error al usuario (si tienes un sistema de notificaciones)
-        // useNotification().error(errorData.message || 'Ha ocurrido un error');
-    },
+            // Mostrar notificación de error al usuario (si tienes un sistema de notificaciones)
+            // useNotification().error(errorData.message || 'Ha ocurrido un error');
+        },
+    };
 };
 
 /**
@@ -109,7 +113,7 @@ export class ApiService {
         options?: UseFetchOptions<T>
     ): Promise<ApiResponse<T>> {
         const { data, error } = await useFetch<ApiResponse<T>>(url, {
-            ...baseConfig,
+            ...getBaseConfig(),
             ...options,
             method: 'GET',
         });
@@ -130,7 +134,7 @@ export class ApiService {
         options?: UseFetchOptions<T>
     ): Promise<ApiResponse<T>> {
         const { data, error } = await useFetch<ApiResponse<T>>(url, {
-            ...baseConfig,
+            ...getBaseConfig(),
             ...options,
             method: 'POST',
             body,
@@ -152,7 +156,7 @@ export class ApiService {
         options?: UseFetchOptions<T>
     ): Promise<ApiResponse<T>> {
         const { data, error } = await useFetch<ApiResponse<T>>(url, {
-            ...baseConfig,
+            ...getBaseConfig(),
             ...options,
             method: 'PUT',
             body,
@@ -174,7 +178,7 @@ export class ApiService {
         options?: UseFetchOptions<T>
     ): Promise<ApiResponse<T>> {
         const { data, error } = await useFetch<ApiResponse<T>>(url, {
-            ...baseConfig,
+            ...getBaseConfig(),
             ...options,
             method: 'PATCH',
             body,
@@ -195,7 +199,7 @@ export class ApiService {
         options?: UseFetchOptions<T>
     ): Promise<ApiResponse<T>> {
         const { data, error } = await useFetch<ApiResponse<T>>(url, {
-            ...baseConfig,
+            ...getBaseConfig(),
             ...options,
             method: 'DELETE',
         });
