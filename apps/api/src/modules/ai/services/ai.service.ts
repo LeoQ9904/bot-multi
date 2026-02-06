@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-bedrock-runtime';
 import { MarkdownMemoryService } from '../memory/markdown-memory.service';
 import { InMemCacheService } from '../memory/in-mem-cache.service';
+import { DynamicMemoryService, MemoryType } from '../memory/dynamic-memory.service';
 import { IdentityService } from './identity.service';
 import { SearchService } from './search.service';
 
@@ -17,6 +18,7 @@ export class AIService {
     constructor(
         private readonly markdownMemory: MarkdownMemoryService,
         private readonly inMemCache: InMemCacheService,
+        private readonly dynamicMemory: DynamicMemoryService,
         private readonly identityService: IdentityService,
         private readonly searchService: SearchService,
     ) {
@@ -58,23 +60,41 @@ export class AIService {
         // 2. Get recent context from cache
         const recentContext = this.inMemCache.getRecentContext(conversationId);
 
-        // 3. Perform web search if needed
+        // 3. Check if user wants to save memory
+        const shouldSave = this.dynamicMemory.shouldSaveMemory(prompt);
+        const memoryType = this.dynamicMemory.detectMemoryType(prompt);
+
+        // 4. Load relevant memories
+        let memoriesContext = '';
+        if (memoryType) {
+            const memories = await this.dynamicMemory.getMemory(userId, memoryType);
+            if (memories) {
+                memoriesContext = `\n\nYour ${memoryType}:\n${memories}`;
+            }
+        }
+
+        // 5. Perform web search if needed
         let searchResults = '';
         if (this.shouldSearch(prompt)) {
             searchResults = await this.searchService.search(prompt);
         }
 
-        // 4. Prepare full prompt with identity, date, search results, and context
+        // 6. Prepare full prompt with identity, date, search results, and context
         const now = new Date();
         const dateStr = now.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         let systemInstructions = `You are ${identity.name}. ${identity.personality}\nToday is ${dateStr}.`;
+
+        // Add memory management instructions
+        if (shouldSave) {
+            systemInstructions += `\n\nIMPORTANT: The user wants to save information. Extract the key information they want to remember and format it clearly. Confirm what you've saved.`;
+        }
 
         // Add strict anti-hallucination rules when search results are present
         if (searchResults) {
             systemInstructions += `\n\nIMPORTANT: I have provided you with web search results below. Use ONLY the information from these search results to answer questions about current events, prices, or real-time data. If the search results don't contain the answer, simply say you don't have that information. Be natural and conversational - don't mention that you're reading from search results unless asked. Cite sources naturally when relevant.`;
         }
 
-        let contextSection = `Recent conversation history:\n${recentContext}`;
+        let contextSection = `Recent conversation history:\n${recentContext}${memoriesContext}`;
         if (searchResults) {
             contextSection = `Web Search Results:\n${searchResults}\n\n${contextSection}`;
         }
@@ -103,12 +123,17 @@ export class AIService {
             const resBody = JSON.parse(new TextDecoder().decode(response.body));
             const aiResponse = resBody.content[0].text;
 
-            // 3. Save to memory systems
+            // 7. Save to memory systems
             await this.markdownMemory.saveMessage(userId, conversationId, 'user', prompt);
             await this.markdownMemory.saveMessage(userId, conversationId, 'assistant', aiResponse);
 
             this.inMemCache.addToCache(conversationId, 'user', prompt);
             this.inMemCache.addToCache(conversationId, 'assistant', aiResponse);
+
+            // 8. Save to dynamic memory if needed
+            if (shouldSave && memoryType) {
+                await this.dynamicMemory.saveMemory(userId, memoryType, `${prompt}\n\nResponse: ${aiResponse}`);
+            }
 
             return aiResponse;
         } catch (error) {
