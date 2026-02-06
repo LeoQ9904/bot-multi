@@ -1,0 +1,32 @@
+import { ApiService } from './api.service';
+import { IA_ENDPOINTS } from '../constants/api-endpoints';
+import type { ChatResponse, BotIdentity, IdentitySaveResponse } from '../interfaces';
+
+/**
+ * IA Service
+ */
+export class IaService {
+    static async chat(message: string, conversationId: string, token: string) {
+        return ApiService.post<ChatResponse>(
+            IA_ENDPOINTS.CHAT,
+            { prompt: message, conversationId },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+    }
+
+    static async getIdentity(token: string) {
+        return ApiService.get<BotIdentity>(IA_ENDPOINTS.IDENTITY, { headers: { Authorization: `Bearer ${token}` } });
+    }
+
+    static async updateIdentity(data: BotIdentity, token: string) {
+        return ApiService.post<IdentitySaveResponse>(IA_ENDPOINTS.IDENTITY, data, { headers: { Authorization: `Bearer ${token}` } });
+    }
+}
+
+export const useIaService = () => {
+    return {
+        chat: IaService.chat,
+        getIdentity: IaService.getIdentity,
+        updateIdentity: IaService.updateIdentity,
+    };
+};
