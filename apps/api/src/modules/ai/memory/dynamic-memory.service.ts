@@ -82,6 +82,8 @@ export class DynamicMemoryService {
             console.error('Error updating task:', error);
         }
     }
+
+    async getAllMemories(userId: string): Promise<string> {
         let allMemories = '';
         for (const type of Object.values(MemoryType)) {
             const memory = await this.getMemory(userId, type as MemoryType);
@@ -92,8 +94,16 @@ export class DynamicMemoryService {
         return allMemories;
     }
 
-    detectMemoryAction(prompt: string): { action: 'list' | 'add' | 'complete' | null, type: MemoryType | null } {
+    detectMemoryAction(prompt: string): { action: 'list' | 'add' | 'complete' | 'update_identity' | null, type: MemoryType | null } {
         const lower = prompt.toLowerCase();
+        
+        // Detect identity update
+        const identityKeywords = ['cambiar identidad', 'change identity', 'actualizar identidad', 'update identity', 
+                                  'cambiar personalidad', 'change personality', 'cambiar nombre', 'change name',
+                                  'modificar identidad', 'modify identity', 'tu nombre es', 'your name is',
+                                  'ahora eres', 'now you are', 'comportarte como', 'act like'];
+        const isIdentityUpdate = identityKeywords.some(k => lower.includes(k));
+        if (isIdentityUpdate) return { action: 'update_identity', type: null };
         
         // Detect list action
         const listKeywords = ['listar', 'list', 'mostrar', 'show', 'ver', 'cuáles', 'qué tengo', 'mis'];
@@ -112,7 +122,7 @@ export class DynamicMemoryService {
         return { action: null, type: null };
     }
 
-    async getAllMemories(userId: string): Promise<string> {
+    detectMemoryType(prompt: string): MemoryType | null {
         const lower = prompt.toLowerCase();
         
         const taskKeywords = ['tarea', 'task', 'hacer', 'to do', 'pendiente', 'pending'];
