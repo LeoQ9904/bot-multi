@@ -43,6 +43,7 @@
 <script setup lang="ts">
 import { useIaService } from '~/services/ia.service';
 
+const { show: showLoading, hide: hideLoading } = useLoading();
 const identity = ref({
   name: '',
   greeting: '',
@@ -54,6 +55,7 @@ const fetchIdentity = async () => {
   const { user } = useFirebaseAuth();
   if (!user.value) return;
 
+  showLoading('Cargando identidad', 'Obteniendo configuración...');
   try {
     const token = await user.value.getIdToken();
     const response = await useIaService().getIdentity(token);
@@ -62,6 +64,8 @@ const fetchIdentity = async () => {
     }
   } catch (error) {
     console.error('Failed to fetch identity', error);
+  } finally {
+    hideLoading();
   }
 };
 
@@ -74,6 +78,7 @@ const saveIdentity = async () => {
   if (!user.value) return;
 
   saving.value = true;
+  showLoading('Guardando identidad', 'Actualizando configuración...');
   try {
     const token = await user.value.getIdToken();
     const response = await useIaService().updateIdentity(identity.value, token);
@@ -85,6 +90,7 @@ const saveIdentity = async () => {
     alert('Error al guardar la identidad');
   } finally {
     saving.value = false;
+    hideLoading();
   }
 };
 </script>

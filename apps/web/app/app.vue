@@ -6,6 +6,8 @@
       <NuxtPage />
     </main>
 
+    <LoadingOverlay :show="isLoading" :title="loadingTitle" :message="loadingMessage" />
+
     <!-- Login Overlay if not user -->
     <div v-if="!user && !loading" class="landing-page">
       <!-- Animated Background -->
@@ -209,8 +211,17 @@
     </div>
 
     <div v-if="loading" class="loading-full">
-      <div class="spinner"></div>
-      <p>Cargando Aether...</p>
+      <div class="loading-content">
+        <div class="loading-logo">
+          <span class="logo-icon">✨</span>
+          <div class="logo-pulse"></div>
+        </div>
+        <h2 class="loading-title">Aether</h2>
+        <p class="loading-text">Preparando tu experiencia...</p>
+        <div class="loading-bar">
+          <div class="loading-progress"></div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -218,6 +229,7 @@
 <script setup lang="ts">
 import { nextTick, ref, onMounted } from 'vue';
 const { user, loading, loginWithGoogle, syncProfile } = useFirebaseAuth();
+const { isLoading, loadingTitle, loadingMessage } = useLoading();
 
 // Theme management
 const isDarkMode = ref(true);
@@ -300,10 +312,15 @@ const handleLogin = async () => {
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 0;
+  min-height: 100vh;
   background: var(--bg-primary);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--text-primary);
   overflow-x: hidden;
   transition: background-color 0.4s ease, color 0.4s ease;
@@ -1044,40 +1061,104 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 3000;
+  overflow: hidden;
+}
+
+.loading-full::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, var(--accent-primary) 0%, transparent 70%);
+  opacity: 0.1;
+  animation: pulse-bg 3s ease-in-out infinite;
+}
+
+@keyframes pulse-bg {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.1); }
 }
 
 .loading-content {
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
-.spinner {
-  width: 60px;
-  height: 60px;
-  border: 4px solid var(--glass-border);
-  border-top-color: var(--accent-primary);
+.loading-logo {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 2rem;
+}
+
+.logo-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3rem;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px var(--glow));
+}
+
+.logo-pulse {
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--accent-primary);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1.5rem;
+  animation: pulse-ring 2s ease-out infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
   }
 }
 
 .loading-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 2rem;
+  font-weight: 800;
   margin-bottom: 0.5rem;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .loading-text {
   color: var(--text-secondary);
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+.loading-bar {
+  width: 200px;
+  height: 4px;
+  background: var(--glass-border);
+  border-radius: 2px;
+  margin: 0 auto;
+  overflow: hidden;
+  animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+.loading-progress {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+  border-radius: 2px;
+  animation: progress 1.5s ease-in-out infinite;
+}
+
+@keyframes progress {
+  0% { width: 0%; transform: translateX(0); }
+  50% { width: 70%; }
+  100% { width: 100%; transform: translateX(0); }
 }
 
 /* Animations */

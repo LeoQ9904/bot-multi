@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { useIntegrationService } from '~/services/integration.service';
 
+const { show: showLoading, hide: hideLoading } = useLoading();
 const telegramToken = ref('');
 const notionToken = ref('');
 const notionDbId = ref('');
@@ -110,17 +111,20 @@ const fetchIntegrations = async () => {
   const { user } = useFirebaseAuth();
   if (!user.value) return;
 
+  showLoading('Cargando integraciones', 'Obteniendo configuración...');
   try {
     const token = await user.value.getIdToken();
     const response = await useIntegrationService().list(token);
     if (response && response.data) {
       const data = response.data;
       const map: Record<string, any> = {};
-      data.forEach((i: any) => (map[i.type] = i));
+      response.data.forEach((i: any) => (map[i.type] = i));
       integrations.value = map;
     }
   } catch (error) {
     console.error('Failed to fetch integrations', error);
+  } finally {
+    hideLoading();
   }
 };
 
@@ -132,6 +136,7 @@ const saveIntegration = async (type: string, config: any) => {
   const { user } = useFirebaseAuth();
   if (!user.value) return alert('Por favor inicia sesión primero');
 
+  showLoading('Conectando', `Configurando ${type}...`);
   try {
     const token = await user.value.getIdToken();
     const response = await useIntegrationService().create(type, config, token);
@@ -139,33 +144,34 @@ const saveIntegration = async (type: string, config: any) => {
     if (response && response.data) {
       alert(`¡Integración ${type} guardada y activada!`);
       fetchIntegrations();
-    } else {
-      const error = response || 'Error desconocido';
-      alert(`Error: ${error.message || error}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to save integration', error);
-    alert('Error al conectar con el servidor');
+    alert(`Error: ${error.message || 'Error desconocido'}`);
+  } finally {
+    hideLoading();
   }
 };
 
 const deleteIntegration = async (id: string, type: string) => {
-  console.log('Attempting to delete integration:', { id, type });
   if (!confirm(`¿Estás seguro de que quieres desconectar ${type}?`)) return;
 
   const { user } = useFirebaseAuth();
   if (!user.value) return;
 
+  showLoading('Desconectando', `Eliminando ${type}...`);
   try {
     const token = await user.value.getIdToken();
     const response = await useIntegrationService().delete(id, token);
 
     if (response) {
-      alert(`${type} desconectado.`);
-      fetchIntegrations();
+    alert(`${type} desconectado.`);
+    fetchIntegrations();
     }
   } catch (error) {
     console.error('Failed to delete integration', error);
+  } finally {
+    hideLoading();
   }
 };
 </script>
