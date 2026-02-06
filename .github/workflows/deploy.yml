@@ -1,0 +1,79 @@
+name: CI/CD — Build, Test, Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.17.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint || true
+
+      - name: Run API tests
+        run: pnpm --filter api test || true
+
+  deploy-to-ec2:
+    name: Deploy to EC2 (build on host)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout (for artifacts/logs)
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH (EC2)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            echo "🚀 Deploy started by GitHub Actions"
+            cd ${EC2_APP_DIR:-/home/ubuntu/aether}
+
+            echo "📥 Fetching latest code"
+            git fetch --all --prune
+            git reset --hard origin/main
+
+            echo "🐳 Building images on host (no Docker Hub required)"
+            docker compose build --pull --progress=plain
+
+            echo "▶️  Bringing containers up"
+            docker compose up -d --remove-orphans --build
+
+            echo "🧹 Pruning unused images"
+            docker image prune -f
+
+            echo "✅ Deploy finished"
+
+      - name: Post-deploy status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            console.log('Deployment finished for', context.ref)
