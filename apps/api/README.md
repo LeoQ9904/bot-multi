@@ -1,98 +1,171 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Aether API - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend NestJS para la plataforma Aether con IA, autenticación y gestión de integraciones.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 🛠️ Stack Tecnológico
 
-## Description
+- **Framework**: NestJS 11
+- **Lenguaje**: TypeScript 5.7
+- **Base de datos**: PostgreSQL 15 + Prisma ORM 5.22
+- **Autenticación**: Firebase Admin SDK
+- **IA**: AWS Bedrock (Claude 3.5 Sonnet)
+- **Bots**: Telegraf 4.16
+- **Search**: Tavily API
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 📂 Estructura
 
-## Project setup
-
-```bash
-$ pnpm install
+```
+src/
+├── common/
+│   ├── filters/          # Exception filters
+│   ├── guards/           # Firebase auth guard
+│   └── interceptors/     # Response transformer
+├── modules/
+│   ├── ai/              # IA y gestión de identidad
+│   ├── users/           # Gestión de usuarios
+│   └── integrations/    # Telegram, Notion, etc.
+├── interfaces/          # TypeScript interfaces
+├── prisma.service.ts    # Prisma client
+└── main.ts             # Bootstrap
 ```
 
-## Compile and run the project
+## 🔧 Configuración
 
-```bash
-# development
-$ pnpm run start
+### Variables de Entorno (`.env`)
 
-# watch mode
-$ pnpm run start:dev
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5433/aether_db?schema=public"
 
-# production mode
-$ pnpm run start:prod
+# AWS Bedrock
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+
+# Firebase
+FIREBASE_PROJECT_ID=your_project_id
+GCLOUD_PROJECT=your_project_id
+
+# APIs
+TAVILY_API_KEY=your_tavily_key
+
+# Server
+PORT=8080
 ```
 
-## Run tests
+### Firebase Service Account
+
+Colocar `serviceAccountKey.json` en la raíz del proyecto API.
+
+## 🚀 Instalación
 
 ```bash
-# unit tests
-$ pnpm run test
+# Instalar dependencias
+pnpm install
 
-# e2e tests
-$ pnpm run test:e2e
+# Generar Prisma Client
+pnpm prisma generate
 
-# test coverage
-$ pnpm run test:cov
+# Ejecutar migraciones
+pnpm prisma migrate dev
+
+# Iniciar en desarrollo
+pnpm start:dev
 ```
 
-## Deployment
+## 📡 Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Autenticación
+Todos los endpoints requieren header: `Authorization: Bearer <firebase_token>`
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### AI
+- `POST /ai/chat` - Chat con IA
+- `GET /ai/identity` - Obtener identidad del bot
+- `POST /ai/identity` - Actualizar identidad
+
+### Users
+- `GET /users/profile` - Perfil del usuario autenticado
+
+### Integrations
+- `GET /integrations` - Listar integraciones
+- `POST /integrations` - Crear integración
+- `DELETE /integrations/:id` - Eliminar integración
+
+## 🗄️ Base de Datos
+
+### Modelos Prisma
+
+- **User**: Usuarios con Firebase UID
+- **Integration**: Integraciones (Telegram, Notion, etc.)
+- **Conversation**: Conversaciones por plataforma
+- **Message**: Mensajes de chat
+
+### Comandos Prisma
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+# Crear migración
+pnpm prisma migrate dev --name nombre_migracion
+
+# Aplicar migraciones
+pnpm prisma migrate deploy
+
+# Abrir Prisma Studio
+pnpm prisma studio
+
+# Reset database
+pnpm prisma migrate reset
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 🔒 Seguridad
 
-## Resources
+- **FirebaseGuard**: Valida tokens JWT de Firebase
+- **HttpExceptionFilter**: Manejo global de errores
+- **TransformInterceptor**: Formato estándar de respuestas
+- **CORS**: Configurado para `http://localhost:3003`
 
-Check out a few resources that may come in handy when working with NestJS:
+## 🧪 Testing
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+# Unit tests
+pnpm test
 
-## Support
+# E2E tests
+pnpm test:e2e
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+# Coverage
+pnpm test:cov
+```
 
-## Stay in touch
+## 📦 Build & Deploy
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+# Build
+pnpm build
 
-## License
+# Producción
+pnpm start:prod
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 🐳 Docker
+
+```bash
+# Build imagen
+docker build -t aether-api .
+
+# Run container
+docker run -p 8080:8080 aether-api
+```
+
+## 🔍 Logs
+
+Los logs incluyen:
+- Peticiones HTTP (desarrollo)
+- Errores de autenticación
+- Operaciones de base de datos
+- Eventos de Telegram bot
+
+## 📝 Notas
+
+- El puerto por defecto es `8080`
+- La memoria de conversaciones se guarda en `storage/memory/`
+- Los bots de Telegram se inician automáticamente al crear integración
