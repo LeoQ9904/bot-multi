@@ -49,6 +49,36 @@ const isTyping = ref(false);
 const scrollContainer = ref<HTMLElement | null>(null);
 const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([]);
 
+const STORAGE_KEY = 'aether-chat-history';
+
+const loadChatHistory = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        messages.value = JSON.parse(saved);
+      } catch (e) {
+        console.error('Error loading chat history:', e);
+      }
+    }
+  }
+};
+
+const saveChatHistory = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.value));
+  }
+};
+
+onMounted(() => {
+  loadChatHistory();
+  scrollToBottom();
+});
+
+watch(messages, () => {
+  saveChatHistory();
+}, { deep: true });
+
 const scrollToBottom = () => {
   nextTick(() => {
     if (scrollContainer.value) {
