@@ -122,33 +122,24 @@ const sendMessage = async () => {
   display: flex;
   flex-direction: column;
   padding: 1rem;
+  gap: 1rem;
 }
 
 @media (max-width: 768px) {
   .chat-container {
     padding: 0.5rem;
-    height: 100dvh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding-top: 5rem;
+    height: calc(100dvh - 8rem);
+    gap: 0.75rem;
   }
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 2rem;
+  padding: 0.5rem;
   scrollbar-width: thin;
   scrollbar-color: var(--glass-border) transparent;
-}
-
-@media (max-width: 768px) {
-  .chat-messages {
-    padding-bottom: 5rem;
-  }
+  min-height: 0;
 }
 
 .message {
@@ -190,24 +181,19 @@ const sendMessage = async () => {
 }
 
 .chat-input-area {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
   padding: 0.75rem 1rem;
   border-radius: 100px;
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
+  margin-bottom: env(safe-area-inset-bottom);
 }
 
 @media (max-width: 768px) {
   .chat-input-area {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    z-index: 100;
+    padding: 0.6rem 0.85rem;
+    border-radius: 50px;
   }
 }
 
