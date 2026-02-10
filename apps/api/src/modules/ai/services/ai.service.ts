@@ -157,13 +157,15 @@ export class AIService {
       - REMINDER: For things the user needs to remember.
       
       Examples:
-      - User: "Recuérdame comprar leche." -> Response: "Entendido, lo he anotado. [MEMORY:TASK:Comprar leche]"
-      - User: "Guarda esta nota: La reunión fue buena." -> Response: "Guardado. [MEMORY:NOTE:La reunión fue buena]"
+      - User: "Recuérdame comprar leche." -> Response: "Entendido. [MEMORY:TASK:Comprar leche]"
+      - User: "Guarda esta nota." -> Response: "Guardado. [MEMORY:NOTE:Contenido de la nota]"
       
       Rules:
-      1. Use the command at the end of your sentence.
-      2. The content inside the command must be concise and clear.
-      3. Do NOT mention the command syntax to the user, just use it.
+      1. Use the command at the end of your response.
+      2. The content inside the command must be concise.
+      3. Do NOT mention the command syntax to the user.
+      4. BE CONCISE. Avoid long introductions like "¡Claro que sí!". Just answer the request directly.
+      5. NEVER simulate the user's response. Stop speaking immediately after your turn.
       `;
 
     let systemInstructions = `${identityText}\n\n${dateInstruction}\n\n${contextPlataforma}\n\n${formatResponse}`;
@@ -187,6 +189,7 @@ export class AIService {
       body: JSON.stringify({
         anthropic_version: 'bedrock-2023-05-31',
         max_tokens: 1000,
+        stop_sequences: ["\n\nHuman:", "\n\nUser:", "H:", "User:"],
         messages: [
           {
             role: 'user',
