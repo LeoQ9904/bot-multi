@@ -19,18 +19,28 @@
 
       <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
         <div class="icon-ia" v-if="msg.role === 'assistant'" style="margin-right: 5px;">
-          <Logo fontSize="1.2rem"/>
+          <Logo fontSize="1.2rem" />
         </div>
         <div>
-          <div style="color: var(--text-secondary); margin-bottom: 5px" :style="[msg.role == 'user' ? { textAlign: 'right' } : {}]">
+          <div style="color: var(--text-secondary); margin-bottom: 5px"
+            :style="[msg.role == 'user' ? { textAlign: 'right' } : {}]">
             {{ msg.role === 'assistant' ? 'Raya' : 'Tú' }}
           </div>
           <div class="message-bubble glass">
-            {{ msg.content }}
+            <div v-if="msg.role === 'assistant'" class="" v-html="output(msg.content)"></div>
+            <template v-else>{{ msg.content }}</template>
+          </div>
+          <div v-if="msg.role === 'assistant' && msg.options && msg.options.length > 0 && index === messages.length - 1"
+            class="options-container">
+            <div class="" style="margin-top: 5px; display: flex; gap: 5px; flex-wrap: wrap;">
+              <div @click="sendOption(option)" v-for="(option, i) in msg.options" :key="i" class="option">{{ option }}
+              </div>
+            </div>
           </div>
         </div>
+
         <div v-if="msg.role === 'user'" style="margin-left: 5px;">
-          <Avatar/>
+          <Avatar />
         </div>
       </div>
 
@@ -44,13 +54,8 @@
     </div>
 
     <div class="chat-input-area glass">
-      <input
-        v-model="input"
-        @keyup.enter="sendMessage"
-        placeholder="Escribe tu mensaje..."
-        :disabled="isTyping"
-        class="chat-input"
-      />
+      <input v-model="input" @keyup.enter="sendMessage" placeholder="Escribe tu mensaje..." :disabled="isTyping"
+        class="chat-input" />
       <button @click="sendMessage" :disabled="!input || isTyping" class="send-btn">
         <svg viewBox="0 0 24 24" class="icon">
           <path d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" fill="currentColor" />
@@ -64,12 +69,12 @@
 import Avatar from '~/components/icons/Avatar.vue';
 import Logo from '~/components/icons/Logo.vue';
 import { IaService } from '~/services/ia.service';
+import { marked } from 'marked'
 const { user } = useFirebaseAuth();
 const input = ref('');
 const isTyping = ref(false);
 const scrollContainer = ref<HTMLElement | null>(null);
-const messages = ref<{ role: 'user' | 'assistant'; content: string }[]>([]);
-
+const messages = ref<{ role: 'user' | 'assistant'; content: string, options?: string[] }[]>([]);
 const STORAGE_KEY = 'aether-chat-history';
 
 const loadChatHistory = () => {
@@ -87,7 +92,14 @@ const loadChatHistory = () => {
 
 const saveChatHistory = () => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.value));
+    // En el local storage se guarda sin las opciones
+    const messagesWithoutOptions = messages.value.map(msg => {
+      return {
+        role: msg.role,
+        content: msg.content,
+      };
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messagesWithoutOptions));
   }
 };
 
@@ -112,6 +124,11 @@ const scrollToBottom = () => {
   });
 };
 
+const sendOption = (option: string) => {
+  input.value = option;
+  sendMessage();
+};
+
 const sendMessage = async () => {
   if (!input.value || isTyping.value) return;
 
@@ -125,7 +142,7 @@ const sendMessage = async () => {
     const token = await user.value?.getIdToken();
     const response = await IaService.chat(userMsg, 'main', token!);
     if (response) {
-      messages.value.push({ role: 'assistant', content: response.data.response });
+      messages.value.push({ role: 'assistant', content: response.data.response, options: response.data.options || [] });
     } else {
       messages.value.push({
         role: 'assistant',
@@ -137,12 +154,18 @@ const sendMessage = async () => {
     messages.value.push({
       role: 'assistant',
       content: 'Error de conexión. ¿Está el servidor en ejecución?',
+      options: [],
     });
   } finally {
     isTyping.value = false;
     scrollToBottom();
   }
 };
+
+const output = (msg: string) => {
+  return marked(msg)
+};
+
 </script>
 
 <style scoped>
@@ -154,7 +177,9 @@ const sendMessage = async () => {
   align-items: center;
   min-width: 40px !important;
   min-height: 40px !important;
+  color: white;
 }
+
 .chat-container {
   height: calc(100vh - 1rem);
   margin: 0 auto;
@@ -166,8 +191,8 @@ const sendMessage = async () => {
 
 @media (max-width: 768px) {
   .chat-container {
+    height: calc(100vh - 150px);
     padding: 0.5rem;
-    height: calc(100dvh - 8rem);
     gap: 0.75rem;
   }
 }
@@ -197,6 +222,17 @@ const sendMessage = async () => {
   line-height: 1.5;
   font-size: 0.95rem;
   color: var(--text-primary);
+}
+
+.option {
+  padding: 0.2rem 1rem;
+  border-radius: 5px;
+  line-height: 1.5;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {
@@ -311,10 +347,12 @@ const sendMessage = async () => {
 }
 
 @keyframes float {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -388,6 +426,7 @@ const sendMessage = async () => {
 }
 
 @keyframes bounce {
+
   0%,
   80%,
   100% {

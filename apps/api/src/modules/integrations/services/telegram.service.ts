@@ -83,8 +83,8 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
                 const conversationId = 'main';
 
                 try {
-                    const aiResponse = await this.aiService.generateResponse(userId, conversationId, prompt);
-                    await ctx.reply(aiResponse);
+                    const aiResponse = await this.aiService.generateResponse(userId, conversationId, prompt, 'telegram');
+                    await ctx.reply(aiResponse.response);
                 } catch (error) {
                     this.logger.error(`AI Error for user ${userId}:`, error);
                     await ctx.reply('Sorry, I encountered an error processing your request.');

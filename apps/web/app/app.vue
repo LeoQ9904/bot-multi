@@ -1,13 +1,13 @@
 <template>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
-        rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
-        rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
   <div class="app-shell" :class="{ 'light-theme': !isDarkMode }">
     <Sidebar v-if="user" @displayTheme="toggleTheme" />
 
-    <main v-if="user" :class="{ 'with-sidebar': user }">
+    <main v-if="user" :class="{ 'with-sidebar': user, 'mobile-layout': true }">
       <NuxtPage />
     </main>
 
@@ -276,4 +276,19 @@ const handleLogin = async () => {
 </script>
 
 <style>
+main.with-sidebar {
+  margin-left: 240px;
+  min-height: 100%;
+  transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  main.with-sidebar {
+    margin-left: 0;
+    padding-top: 64px;
+    /* Mobile Header Height */
+    padding-bottom: 72px;
+    /* Mobile Footer Height */
+  }
+}
 </style>

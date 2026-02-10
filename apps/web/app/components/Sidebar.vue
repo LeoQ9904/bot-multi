@@ -2,6 +2,14 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Logo from './icons/Logo.vue';
+import { useIaService } from '~/services/ia.service';
+import { useIntegrationService } from '~/services/integration.service';
+
+// Modular Settings Components
+import SettingsModal from './settings/SettingsModal.vue';
+import AppearanceTab from './settings/AppearanceTab.vue';
+import IdentityTab from './settings/IdentityTab.vue';
+import IntegrationsTab from './settings/IntegrationsTab.vue';
 
 const { logout, user } = useFirebaseAuth();
 const route = useRoute();
@@ -10,6 +18,25 @@ const isDarkMode = ref(true);
 const isMobileOpen = ref(false);
 const isSettingsOpen = ref(false);
 const selectedTheme = ref('dark');
+const currentTab = ref('appearance');
+
+const { show: showLoading, hide: hideLoading } = useLoading();
+const { success, error: toastError } = useToast();
+
+// Identity State
+const identity = ref({
+  name: '',
+  greeting: '',
+  personality: ''
+});
+const isSavingIdentity = ref(false);
+
+// Integrations State
+const integrations = ref<Record<string, any>>({});
+
+const isConnecting = ref<Record<string, boolean>>({});
+const isDeleting = ref<Record<string, boolean>>({});
+const confirmDeleteId = ref<string | null>(null);
 
 const emit = defineEmits(['displayTheme']);
 
@@ -47,10 +74,99 @@ const closeMobileMenu = () => {
 
 const openSettings = () => {
   isSettingsOpen.value = true;
+  fetchAllSettings();
 };
 
 const closeSettings = () => {
   isSettingsOpen.value = false;
+};
+
+const fetchAllSettings = async () => {
+  const { user } = useFirebaseAuth();
+  if (!user.value) return;
+
+  const token = await user.value.getIdToken();
+
+  // Fetch Identity
+  try {
+    const idRes = await useIaService().getIdentity(token);
+    if (idRes) identity.value = idRes.data;
+  } catch (e) {
+    console.error('Failed to fetch identity', e);
+  }
+
+  // Fetch Integrations
+  try {
+    const intRes = await useIntegrationService().list(token);
+    if (intRes && intRes.data) {
+      const map: Record<string, any> = {};
+      intRes.data.forEach((i: any) => (map[i.type] = i));
+      integrations.value = map;
+    }
+  } catch (e) {
+    console.error('Failed to fetch integrations', e);
+  }
+};
+
+const saveIdentity = async () => {
+  const { user } = useFirebaseAuth();
+  if (!user.value) return;
+
+  isSavingIdentity.value = true;
+  try {
+    const token = await user.value.getIdToken();
+    await useIaService().updateIdentity(identity.value, token);
+    success('¡Identidad actualizada!');
+  } catch (e) {
+    toastError('Error al guardar identidad');
+  } finally {
+    isSavingIdentity.value = false;
+  }
+};
+
+const saveIntegration = async (type: string, config: any) => {
+  const { user } = useFirebaseAuth();
+  if (!user.value) return;
+
+  isConnecting.value[type] = true;
+  try {
+    const token = await user.value.getIdToken();
+    await useIntegrationService().create(type, config, token);
+    success(`${type} conectado exitosamente`);
+
+    await fetchAllSettings();
+  } catch (e) {
+    toastError(`Error al conectar ${type}`);
+  } finally {
+    isConnecting.value[type] = false;
+  }
+};
+
+const deleteIntegration = async (id: string, type: string) => {
+  if (confirmDeleteId.value !== id) {
+    confirmDeleteId.value = id;
+    // Auto-reset confirm after 3 seconds
+    setTimeout(() => {
+      if (confirmDeleteId.value === id) confirmDeleteId.value = null;
+    }, 3000);
+    return;
+  }
+
+  const { user } = useFirebaseAuth();
+  if (!user.value) return;
+
+  isDeleting.value[type] = true;
+  try {
+    const token = await user.value.getIdToken();
+    await useIntegrationService().delete(id, token);
+    success(`${type} desconectado`);
+    confirmDeleteId.value = null;
+    await fetchAllSettings();
+  } catch (e) {
+    toastError(`Error al desconectar ${type}`);
+  } finally {
+    isDeleting.value[type] = false;
+  }
 };
 
 onMounted(() => {
@@ -62,20 +178,28 @@ onMounted(() => {
 
 <template>
   <div class="sidebar-wrapper">
-    <!-- Mobile Toggle Button -->
-    <button class="mobile-toggle" @click="toggleMobileMenu">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+      <div class="app-brand">
+        <Logo class="mobile-logo" />
+        <span>Aether</span>
+      </div>
+      <div class="user-avatar-mobile" @click="openSettings">
+        <img v-if="user?.photoURL" :src="user.photoURL || undefined" :alt="user.displayName || 'User'"
+          class="avatar-img" />
+        <div v-else class="avatar-fallback">
+          {{ user?.displayName?.[0]?.toUpperCase() || 'U' }}
+        </div>
+      </div>
+    </header>
 
-    <!-- Sidebar -->
-    <aside class="sidebar" :class="{ 'mobile-open': isMobileOpen }">
+    <!-- Desktop Sidebar (Hidden on Mobile) -->
+    <aside class="sidebar desktop-only">
       <!-- Header -->
       <div class="sidebar-header">
         <div class="app-brand">
           <Logo />
-          <span>Raya</span>
+          <span>Aether</span>
         </div>
       </div>
 
@@ -83,12 +207,7 @@ onMounted(() => {
       <nav class="sidebar-nav">
         <ul class="menu-list">
           <li v-for="item in menuItems" :key="item.path" class="menu-item">
-            <NuxtLink
-              :to="item.path"
-              class="menu-link"
-              :class="{ active: isActive(item.path) }"
-              @click="closeMobileMenu"
-            >
+            <NuxtLink :to="item.path" class="menu-link" :class="{ active: isActive(item.path) }">
               <span class="material-symbols-outlined">{{ item.icon }}</span>
               <span class="text-sm">{{ item.label }}</span>
             </NuxtLink>
@@ -98,136 +217,123 @@ onMounted(() => {
 
       <!-- User Section -->
       <div class="sidebar-user">
-        <div style="max-width: calc(100% - 30px)">
-          <div class="user-profile">
-            <img
-              v-if="user?.photoURL"
-              :src="user.photoURL"
-              :alt="user.displayName"
-              class="user-avatar"
-            />
-            <div v-else class="user-avatar-fallback">
-              {{ user?.displayName?.[0]?.toUpperCase() || 'U' }}
-            </div>
-            <div class="user-info">
-              <div class="user-name">{{ user?.displayName || 'Usuario' }}</div>
-              <div class="user-email">{{ user?.email }}</div>
-            </div>
+        <div class="user-profile">
+          <img v-if="user?.photoURL" :src="user.photoURL || undefined" :alt="user.displayName || 'User'"
+            class="user-avatar" />
+          <div v-else class="user-avatar-fallback">
+            {{ user?.displayName?.[0]?.toUpperCase() || 'U' }}
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ user?.displayName || 'Usuario' }}</div>
+            <div class="user-email">{{ user?.email }}</div>
           </div>
         </div>
 
-        <!-- User Actions -->
         <button @click="openSettings" class="action-btn settings-btn" title="Configuración">
           <span class="material-symbols-outlined">settings</span>
         </button>
       </div>
     </aside>
 
-    <!-- Settings Modal -->
-    <div v-if="isSettingsOpen" class="settings-modal-overlay" @click="closeSettings">
-      <div class="settings-modal" @click.stop>
-        <div class="settings-header">
-          <h2>Configuración</h2>
-          <button class="close-btn" @click="closeSettings">
-            <span class="material-symbols-outlined">close</span>
-          </button>
-        </div>
+    <!-- Mobile Footer Navigation -->
+    <nav class="mobile-footer-nav">
+      <ul class="mobile-menu-list">
+        <li v-for="item in menuItems.slice(0, 5)" :key="item.path" class="mobile-menu-item">
+          <NuxtLink :to="item.path" class="mobile-menu-link" :class="{ active: isActive(item.path) }">
+            <span class="material-symbols-outlined">{{ item.icon }}</span>
+            <span class="mobile-menu-label">{{ item.label }}</span>
+          </NuxtLink>
+        </li>
+      </ul>
+    </nav>
 
-        <div class="settings-content">
-          <!-- Theme Selection -->
-          <div class="settings-section">
-            <h3>Tema</h3>
-            <div class="theme-grid">
-              <button
-                v-for="theme in themes"
-                :key="theme.value"
-                @click="toggleTheme(theme.value)"
-                class="theme-option"
-                :class="{ active: selectedTheme === theme.value }"
-              >
-                <div class="theme-preview" :style="{ backgroundColor: theme.color }"></div>
-                <span>{{ theme.name }}</span>
-              </button>
-            </div>
-          </div>
+    <!-- Refactored Settings Modal -->
+    <SettingsModal :is-open="isSettingsOpen" v-model:current-tab="currentTab" @close="closeSettings" @logout="logout">
+      <AppearanceTab v-if="currentTab === 'appearance'" :selected-theme="selectedTheme" :themes="themes"
+        @update:theme="toggleTheme" />
 
-          <!-- Logout -->
-          <div class="settings-section">
-            <button @click="logout" class="logout-btn-modal">
-              <span class="material-symbols-outlined">logout</span>
-              Cerrar sesión
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      <IdentityTab v-if="currentTab === 'identity'" :identity="identity" :is-saving="isSavingIdentity"
+        @save="saveIdentity" />
 
-    <!-- Mobile Overlay -->
-    <div v-if="isMobileOpen" class="sidebar-overlay" @click="closeMobileMenu"></div>
+      <IntegrationsTab v-if="currentTab === 'integrations'" :integrations="integrations" :is-connecting="isConnecting"
+        :is-deleting="isDeleting" :confirm-delete-id="confirmDeleteId" @save="saveIntegration"
+        @delete="deleteIntegration" />
+    </SettingsModal>
   </div>
 </template>
 
 <style scoped>
-.sidebar-wrapper {
-  position: relative;
-}
-
-/* Mobile Toggle Button */
-.mobile-toggle {
+/* Mobile Header */
+.mobile-header {
   display: none;
   position: fixed;
-  top: 1rem;
-  left: 1rem;
-  z-index: 1001;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  cursor: pointer;
-  flex-direction: column;
-  justify-content: center;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+  padding: 0 1.25rem;
   align-items: center;
-  gap: 5px;
-  transition: all 0.3s ease;
+  justify-content: space-between;
+  z-index: 1000;
 }
 
-.mobile-toggle:hover {
-  background: var(--bg-tertiary);
+.mobile-logo {
+  width: 32px;
+  height: 32px;
 }
 
-.mobile-toggle span {
-  width: 20px;
-  height: 2.5px;
-  background: var(--text-primary);
-  border-radius: 2px;
-  transition: all 0.3s ease;
+.user-avatar-mobile {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--accent-primary);
+  cursor: pointer;
 }
 
-/* Sidebar */
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-fallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* Sidebar (Desktop) */
 .sidebar {
   position: fixed;
   left: 0;
   top: 0;
-  width: 220px;
+  width: 240px;
   height: 100vh;
   background: var(--bg-secondary);
   border-right: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
   z-index: 1000;
-  transition: transform 0.3s ease;
 }
 
 /* Sidebar Header */
 .sidebar-header {
-  padding: 15px;
+  padding: 2rem 1.5rem;
 }
 
 .app-brand {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.75rem;
   font-weight: 800;
   font-size: 1.5rem;
@@ -241,127 +347,86 @@ onMounted(() => {
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
-  padding: 0 0;
+  padding: 0.5rem;
 }
 
 .menu-list {
   list-style: none;
-  padding: 15px;
+  padding: 0;
   margin: 0;
-}
-
-.menu-item {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .menu-link {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.6rem 1rem;
+  padding: 0.75rem 1rem;
   color: var(--text-secondary);
   text-decoration: none;
   font-weight: 500;
-  font-size: 1.05rem;
-  transition: all 0.4s ease;
-  border-radius: 10px;
+  transition: all 0.2s ease;
+  border-radius: 12px;
 }
 
 .menu-link:hover {
   color: var(--text-primary);
   background: var(--bg-tertiary);
-  border-left-color: var(--accent-primary);
 }
 
 .menu-link.active {
-  color: var(--accent-primary);
-  background: var(--bg-tertiary);
-  border-left-color: var(--accent-primary);
-  font-weight: 800;
-}
-
-.menu-icon {
-  font-size: 1.5rem;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.material-icons {
-  font-family: 'Material Icons Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 1.5rem;
-  display: inline-block;
-  line-height: 1;
-  text-transform: none;
-  letter-spacing: normal;
-  word-wrap: normal;
-  white-space: nowrap;
-  direction: ltr;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.menu-label {
-  flex: 1;
-}
-
-/* Divider */
-.sidebar-divider {
-  height: 1px;
-  background: var(--glass-border);
-  margin: 1rem 0;
+  color: white;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  font-weight: 600;
+  box-shadow: 0 4px 12px var(--glow);
 }
 
 /* User Section */
 .sidebar-user {
+  padding: 1.25rem;
+  border-top: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.5rem;
-  border-top: 1px solid var(--glass-border);
+  gap: 0.75rem;
 }
 
 .user-profile {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .user-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   object-fit: cover;
-  flex-shrink: 0;
   border: 2px solid var(--accent-primary);
 }
 
 .user-avatar-fallback {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.95rem;
-  flex-shrink: 0;
 }
 
 .user-info {
-  flex: 1;
   min-width: 0;
 }
 
 .user-name {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -369,109 +434,112 @@ onMounted(() => {
 }
 
 .user-email {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* User Actions */
 .action-btn {
-  padding: 0.625rem;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   background: var(--bg-tertiary);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
 }
 
 .action-btn:hover {
   background: var(--glass-bg);
-  transform: scale(1.05);
+  transform: translateY(-2px);
 }
 
-.settings-btn {
-  width: 100%;
-}
-
-.settings-btn .material-icons {
-  font-size: 1.25rem;
-}
-
-/* Mobile Overlay */
-.sidebar-overlay {
+/* Mobile Footer Navigation */
+.mobile-footer-nav {
   display: none;
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--glass-border);
+  z-index: 1000;
+  padding: 0 0.5rem;
+}
+
+.mobile-menu-list {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 100%;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mobile-menu-item {
+  flex: 1;
+}
+
+.mobile-menu-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+  height: 100%;
+}
+
+.mobile-menu-link .material-symbols-outlined {
+  font-size: 1.5rem;
+}
+
+.mobile-menu-link.active {
+  color: var(--accent-primary);
+}
+
+.mobile-menu-link.active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .mobile-toggle {
+  .sidebar {
+    display: none;
+  }
+
+  .mobile-header {
     display: flex;
   }
 
-  .sidebar {
-    transform: translateX(-100%);
-  }
-
-  .sidebar.mobile-open {
-    transform: translateX(0);
-  }
-
-  .sidebar-overlay {
+  .mobile-footer-nav {
     display: block;
   }
-
-  .sidebar-overlay.hidden {
-    display: none;
-  }
-}
-
-/* Scrollbar Styling */
-.sidebar-nav::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sidebar-nav::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb {
-  background: var(--glass-border);
-  border-radius: 3px;
-}
-
-.sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: var(--text-tertiary);
 }
 
 /* Settings Modal */
 .settings-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .settings-modal {
@@ -482,17 +550,7 @@ onMounted(() => {
   border-left: 1px solid var(--glass-border);
   display: flex;
   flex-direction: column;
-  animation: slideIn 0.3s ease;
-  box-shadow: -2px 0 8px var(--shadow);
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
 }
 
 .settings-header {
@@ -506,28 +564,15 @@ onMounted(() => {
 .settings-header h2 {
   font-size: 1.5rem;
   color: var(--text-primary);
-  margin: 0;
 }
 
 .close-btn {
-  background: transparent;
-  border: none;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--glass-border);
   cursor: pointer;
   color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 0.5rem;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: var(--bg-tertiary);
   border-radius: 8px;
-}
-
-.close-btn .material-icons {
-  font-size: 1.5rem;
 }
 
 .settings-content {
@@ -536,86 +581,75 @@ onMounted(() => {
   padding: 1.5rem;
 }
 
-.settings-section {
+/* Settings Modal Tabs */
+.settings-tabs {
+  display: flex;
+  background: var(--bg-tertiary);
+  padding: 4px;
+  border-radius: 12px;
   margin-bottom: 2rem;
+  gap: 4px;
 }
 
-.settings-section h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.theme-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.theme-option {
+.tab-btn {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--glass-border);
-  border-radius: 12px;
+  gap: 4px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.theme-option:hover {
-  border-color: var(--accent-primary);
-  background: var(--glass-bg);
-}
-
-.theme-option.active {
-  border-color: var(--accent-primary);
-  background: var(--glass-bg);
-  box-shadow: 0 0 12px var(--glow);
-}
-
-.theme-preview {
-  width: 100%;
-  height: 60px;
   border-radius: 8px;
-  border: 1px solid var(--glass-border);
-}
-
-.logout-btn-modal {
-  width: 100%;
-  padding: 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 12px;
-  color: #ef4444;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
   transition: all 0.2s ease;
+  font-size: 0.7rem;
+  font-weight: 600;
 }
 
-.logout-btn-modal:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
-}
-
-.logout-btn-modal .material-icons {
+.tab-btn .material-symbols-outlined {
   font-size: 1.25rem;
 }
 
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+  background: var(--glass-bg);
+  color: var(--accent-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tab-pane {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 768px) {
-  .settings-modal {
-    max-width: 100%;
+  .sidebar {
+    display: none;
+  }
+
+  .mobile-header {
+    display: flex;
+  }
+
+  .mobile-footer-nav {
+    display: block;
   }
 }
 </style>

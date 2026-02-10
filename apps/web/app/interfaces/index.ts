@@ -34,6 +34,7 @@ export interface ChatRequest {
 
 export interface ChatResponse {
     response: string;
+    options: string[];
 }
 
 export interface BotIdentity {
