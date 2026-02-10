@@ -108,14 +108,15 @@ const fetchAllSettings = async () => {
   }
 };
 
-const saveIdentity = async () => {
+const saveIdentity = async (newIdentity: any) => {
   const { user } = useFirebaseAuth();
   if (!user.value) return;
 
   isSavingIdentity.value = true;
   try {
     const token = await user.value.getIdToken();
-    await useIaService().updateIdentity(identity.value, token);
+    await useIaService().updateIdentity(newIdentity, token);
+    identity.value = { ...newIdentity };
     success('¡Identidad actualizada!');
   } catch (e) {
     toastError('Error al guardar identidad');

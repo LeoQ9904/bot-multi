@@ -14,6 +14,8 @@ export class IdentityController {
 
     @Post()
     async saveIdentity(@Req() req: any, @Body() identity: BotIdentity) {
+        console.log('IdentityController: POST request received for user:', req.user.id);
+        console.log('IdentityController: Body:', JSON.stringify(identity, null, 2));
         await this.identityService.saveIdentity(req.user.id, identity);
         return { message: 'Identity saved successfully' };
     }

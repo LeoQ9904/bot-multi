@@ -145,6 +145,25 @@ export class AIService {
     const contextPlataforma = `\n\n
       ## Plataforma:
       Aether es una plataforma pensada para ayudar al usuario, por medio del chat la plataforma debe que poder resolver las solicitudes dadas por el usuario, no se debe que sugerir el uso de plataformas externas, todo se debe que resolver desde Aether.
+
+      ## Memory System (IMPORTANT):
+      You have the ability to save important information to the user's memory files. When the user asks you to save a task, note, or reminder, or when you detect critical information that should be persisted, you MUST include a specific command in your response.
+      
+      Command Format: [MEMORY:TYPE:CONTENT]
+      
+      Available Types:
+      - TASK: For to-do items and tasks.
+      - NOTE: For general notes, summaries, or important info.
+      - REMINDER: For things the user needs to remember.
+      
+      Examples:
+      - User: "Recuérdame comprar leche." -> Response: "Entendido, lo he anotado. [MEMORY:TASK:Comprar leche]"
+      - User: "Guarda esta nota: La reunión fue buena." -> Response: "Guardado. [MEMORY:NOTE:La reunión fue buena]"
+      
+      Rules:
+      1. Use the command at the end of your sentence.
+      2. The content inside the command must be concise and clear.
+      3. Do NOT mention the command syntax to the user, just use it.
       `;
 
     let systemInstructions = `${identityText}\n\n${dateInstruction}\n\n${contextPlataforma}\n\n${formatResponse}`;
@@ -181,9 +200,29 @@ export class AIService {
       const command = new InvokeModelCommand(input);
       const response = await this.client.send(command);
       const resBody = JSON.parse(new TextDecoder().decode(response.body));
-      const aiResponse = resBody.content[0].text;
+      let aiResponse = resBody.content[0].text;
 
-      // 7. Save to memory systems
+      // 8. Parse and Execute Memory Commands [MEMORY:TYPE:CONTENT]
+      const memoryRegex = /\[MEMORY:(TASK|NOTE|REMINDER):(.+?)\]/i;
+      const memoryMatch = aiResponse.match(memoryRegex);
+
+      if (memoryMatch) {
+        const type = memoryMatch[1].toLowerCase();
+        const content = memoryMatch[2].trim();
+
+        // Map to MemoryType enum
+        let memoryType: any = 'general';
+        if (type === 'task') memoryType = 'tasks';
+        if (type === 'note') memoryType = 'notes';
+        if (type === 'reminder') memoryType = 'reminders';
+
+        await this.dynamicMemory.saveMemory(userId, memoryType, content);
+
+        // Clean the command from the response so the user doesn't see it (optional, but cleaner)
+        aiResponse = aiResponse.replace(memoryRegex, '').trim();
+      }
+
+      // 7. Save to conversation history (cleaned response)
       await this.markdownMemory.saveMessage(
         userId,
         conversationId,
@@ -200,23 +239,6 @@ export class AIService {
       this.inMemCache.addToCache(conversationId, 'user', prompt);
       this.inMemCache.addToCache(conversationId, 'assistant', aiResponse);
 
-      // 8. Save to dynamic memory if adding
-      if (memoryAction.action === 'add' && memoryAction.type) {
-        // Extract clean content from prompt (remove trigger words)
-        const cleanContent = prompt
-          .replace(
-            /guardar|save|recordar|remember|anotar|note|agregar|add|crear|create|apuntar|write down/gi,
-            '',
-          )
-          .replace(/tarea|task|nota|reminder|recordatorio/gi, '')
-          .replace(/:/g, '')
-          .trim();
-        await this.dynamicMemory.saveMemory(
-          userId,
-          memoryAction.type,
-          cleanContent,
-        );
-      }
       return this.parseIAResponse(aiResponse);
     } catch (error) {
       console.error('AWS Bedrock error:', error);

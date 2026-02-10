@@ -26,7 +26,7 @@ export class IdentityService {
     }
 
     private getIdentityPath(userId: string): string {
-        return path.join(this.storagePath, `${userId}_identity.md`);
+        return path.join(this.storagePath, `${userId}_identity.json`);
     }
 
     async getIdentity(userId: string): Promise<BotIdentity> {
@@ -46,11 +46,12 @@ export class IdentityService {
 
     async saveIdentity(userId: string, identity: BotIdentity): Promise<void> {
         const filePath = this.getIdentityPath(userId);
+        this.logger.log(`IdentityService: Attempting to save identity to ${filePath}`);
         try {
             await fs.writeFile(filePath, JSON.stringify(identity, null, 2), 'utf8');
-            this.logger.log(`Identity saved for user ${userId}`);
+            this.logger.log(`IdentityService: Identity saved successfully for user ${userId}`);
         } catch (error) {
-            this.logger.error(`Error saving identity for user ${userId}:`, error);
+            this.logger.error(`IdentityService: Error saving identity for user ${userId}:`, error);
             throw error;
         }
     }
