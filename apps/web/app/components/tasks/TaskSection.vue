@@ -8,7 +8,8 @@
 
         <div class="task-list">
             <TaskCard v-for="task in tasks" :key="task.id" :task="task" @start="$emit('start', $event)"
-                @edit="$emit('edit', $event)" @more="$emit('more', $event)" />
+                @stop="$emit('stop', $event)" @complete="$emit('complete', $event)" @edit="$emit('edit', $event)"
+                @more="$emit('more', $event)" @preview="$emit('preview', $event)" />
         </div>
     </section>
 </template>
@@ -21,7 +22,7 @@ defineProps<{
     tasks: any[];
 }>();
 
-defineEmits(['start', 'edit', 'more']);
+defineEmits(['start', 'stop', 'complete', 'edit', 'more', 'preview']);
 </script>
 
 <style scoped>

@@ -5,6 +5,7 @@ export default defineNuxtConfig({
   devServer: {
     port: 3003
   },
+  modules: ['@pinia/nuxt'],
   runtimeConfig: {
     public: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,

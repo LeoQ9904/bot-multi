@@ -1,10 +1,18 @@
 <template>
-    <div class="task-card">
+    <div class="task-card" :class="[`status-${task.status}`]">
         <div class="task-info">
             <div class="status-indicator" :class="task.tagColor"></div>
             <div class="task-text">
-                <h3 class="task-title">{{ task.title }}</h3>
-                <p v-if="task.project" class="task-project">Proyecto: {{ task.project }}</p>
+                <div class="title-row">
+                    <h3 class="task-title">{{ task.title }}</h3>
+                    <span v-if="task.status !== 'pending'" class="status-badge" :class="task.status">
+                        {{ getStatusLabel(task.status) }}
+                    </span>
+                </div>
+                <div class="task-subtext">
+                    <span v-if="task.category" class="task-category">{{ task.category }}</span>
+                    <span v-if="task.project" class="task-project">Proyecto: {{ task.project }}</span>
+                </div>
             </div>
         </div>
 
@@ -18,18 +26,38 @@
             <div class="task-duration">
                 <span class="material-symbols-outlined">schedule</span>
                 <span>{{ task.duration }}</span>
+                <span class="time-divider" v-if="task.scheduledAt">|</span>
+                <span v-if="task.scheduledAt" class="scheduled-time">
+                    {{ formatTime(task.scheduledAt) }}
+                </span>
             </div>
         </div>
 
         <!-- Hover Actions -->
         <div class="task-actions">
-            <button class="action-btn start-btn" @click="$emit('start', task)">
+            <button class="preview-btn-icon" @click="$emit('preview', task)" title="Ver detalles">
+                <span class="material-symbols-outlined">visibility</span>
+            </button>
+
+            <button v-if="task.status === 'in-progress'" class="action-btn stop-btn" @click="$emit('stop', task)">
+                <span class="material-symbols-outlined">stop</span>
+                Detener
+            </button>
+            <button v-else class="action-btn start-btn" @click="$emit('start', task)">
                 <span class="material-symbols-outlined">play_arrow</span>
                 Iniciar
             </button>
-            <button class="action-btn edit-btn" @click="$emit('edit', task)">
-                Editar
+
+            <button class="action-btn complete-btn" @click="$emit('complete', task)">
+                <span class="material-symbols-outlined">check_circle</span>
+                Realizada
             </button>
+
+            <button class="action-btn cancel-btn" @click="$emit('cancel', task)">
+                <span class="material-symbols-outlined">cancel</span>
+                Cancelar
+            </button>
+
             <button class="more-btn" @click="$emit('more', task)">
                 <span class="material-symbols-outlined">more_vert</span>
             </button>
@@ -38,21 +66,105 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
     task: {
         id: number | string;
         title: string;
         project?: string | null;
+        category: string;
         priority: number;
         tagColor: string;
         duration: string;
+        status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
+        scheduledAt: number;
     }
 }>();
 
-defineEmits(['start', 'edit', 'more']);
+const formatTime = (ts: number) => {
+    if (!ts) return '';
+    return new Date(ts).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+};
+
+const getStatusLabel = (status: string) => {
+    switch (status) {
+        case 'in-progress': return 'Tarea Iniciada';
+        case 'completed': return 'Realizada';
+        case 'cancelled': return 'Cancelada';
+        default: return '';
+    }
+};
+
+defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
 </script>
 
 <style scoped>
+.title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.status-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.05em;
+}
+
+.status-badge.in-progress {
+    background: var(--glow);
+    color: var(--accent-primary);
+}
+
+.status-badge.completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.status-badge.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.task-card.status-completed,
+.task-card.status-cancelled {
+    opacity: 0.6;
+}
+
+.task-card.status-in-progress {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 20px var(--glow);
+    transform: scale(1.01);
+}
+
+.stop-btn {
+    background: #ef4444 !important;
+    color: white !important;
+}
+
+.complete-btn {
+    background: #10b981 !important;
+    color: white !important;
+}
+
+.cancel-btn {
+    background: var(--bg-tertiary) !important;
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+}
+
+.cancel-btn:hover {
+    background: #ef4444 !important;
+    color: white !important;
+}
+
 .task-card {
     position: relative;
     display: flex;
@@ -98,6 +210,24 @@ defineEmits(['start', 'edit', 'more']);
     background: #10b981;
 }
 
+.task-subtext {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.task-category {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--accent-primary);
+    background: var(--glow);
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
 .task-title {
     font-size: 1rem;
     font-weight: 600;
@@ -109,7 +239,6 @@ defineEmits(['start', 'edit', 'more']);
 .task-project {
     font-size: 0.75rem;
     color: var(--text-tertiary);
-    margin: 0.25rem 0 0 0;
     word-break: break-word;
 }
 
@@ -147,6 +276,17 @@ defineEmits(['start', 'edit', 'more']);
     font-size: 1rem;
 }
 
+.time-divider {
+    margin: 0 0.5rem;
+    color: var(--glass-border);
+    font-weight: 300;
+}
+
+.scheduled-time {
+    color: var(--accent-primary);
+    font-weight: 700;
+}
+
 .task-actions {
     position: absolute;
     inset: 0;
@@ -165,6 +305,27 @@ defineEmits(['start', 'edit', 'more']);
 .task-card:hover .task-actions {
     opacity: 0.98;
     pointer-events: auto;
+}
+
+.preview-btn-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preview-btn-icon:hover {
+    background: var(--bg-secondary);
+    color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    transform: scale(1.05);
 }
 
 .action-btn {

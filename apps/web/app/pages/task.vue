@@ -6,109 +6,194 @@
     </div>
 
     <!-- Filter Bar -->
-    <TaskFilters v-model="activeFilter" :filters="filters" />
+    <TaskFilters v-model="activeFilter" />
 
     <!-- Sections -->
     <div class="task-sections">
-      <TaskSection v-for="(group, sectionName) in groupedTasks" :key="sectionName" :title="String(sectionName)"
-        :tasks="group" @start="handleStartTask" @edit="handleEditTask" @more="handleMoreActions" />
+      <TaskSection v-for="(group, sectionName) in filteredGroupedTasks" :key="sectionName" :title="String(sectionName)"
+        :tasks="group" @start="taskStore.startTask($event.id)" @stop="taskStore.stopTask($event.id)"
+        @complete="taskStore.completeTask($event.id)" @cancel="taskStore.cancelTask($event.id)" @edit="handleEditClick"
+        @more="handleMoreActions" @preview="handlePreviewClick" />
     </div>
 
-    <!-- Spacer for FAB -->
-    <div class="fab-spacer"></div>
+    <!-- ... empty state and FAB ... -->
+    <div v-if="taskStore.tasks.length === 0" class="empty-state">
+      <span class="material-symbols-outlined empty-icon">task</span>
+      <p>No hay tareas pendientes. ¡Buen trabajo!</p>
+    </div>
 
-    <!-- Floating Action Button -->
-    <TaskFab @click="handleNewTask" />
+    <div class="fab-spacer"></div>
+    <TaskFab @chat="handleChatTask" @manual="handleManualTask" />
+
+    <TaskFormModal :is-open="isModalOpen" :initial-data="editingTask" @close="closeModal" @save="handleSaveTask" />
+
+    <!-- Task Detail Modal -->
+    <TaskDetailModal :is-open="isPreviewOpen" :task="previewingTask" @close="closePreview" @edit="handleEditFromPreview"
+      @start="taskStore.startTask($event.id)" @stop="taskStore.stopTask($event.id)"
+      @complete="handleActionAndClosePreview('complete', $event)"
+      @cancel="handleActionAndClosePreview('cancel', $event)" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useTaskStore } from '~/stores/task.store';
 import TaskFilters from '~/components/tasks/TaskFilters.vue';
 import TaskSection from '~/components/tasks/TaskSection.vue';
 import TaskFab from '~/components/tasks/TaskFab.vue';
+import TaskFormModal from '~/components/tasks/TaskFormModal.vue';
+import TaskDetailModal from '~/components/tasks/TaskDetailModal.vue';
+
+const taskStore = useTaskStore();
+
+onMounted(() => {
+  taskStore.initializeExampleData();
+});
+
+// Modal State
+const isModalOpen = ref(false);
+const editingTask = ref<any>(null);
+
+const isPreviewOpen = ref(false);
+const previewingTask = ref<any>(null);
 
 // Filters
-const activeFilter = ref('Todas');
-const filters = ['Todas', 'Prioridad', 'Fecha', 'Etiquetas'];
+const activeFilter = ref({
+  type: 'all',
+  projects: [] as string[],
+  categories: [] as string[],
+  sortOrder: 'desc' as 'asc' | 'desc',
+  dateRange: { start: null as number | null, end: null as number | null },
+  tags: [] as string[]
+});
 
-// Example data
-const tasks = ref([
-  {
-    id: 1,
-    title: 'Revisión de diseño UI Raya App',
-    project: 'Branding 2024',
-    section: 'Hoy',
-    priority: 2,
-    tagColor: 'red',
-    duration: '45 min'
-  },
-  {
-    id: 2,
-    title: 'Preparar reporte de métricas Q3',
-    project: 'Operaciones',
-    section: 'Hoy',
-    priority: 3,
-    tagColor: 'amber',
-    duration: '2h'
-  },
-  {
-    id: 3,
-    title: 'Feedback sesión con equipo creativo',
-    project: null,
-    section: 'Mañana',
-    priority: 1,
-    tagColor: 'emerald',
-    duration: '30 min'
-  },
-  {
-    id: 4,
-    title: 'Planificación estratégica de contenidos v2',
-    project: null,
-    section: 'Esta Semana',
-    priority: 2,
-    tagColor: 'emerald',
-    duration: '1.5h'
+// Derived state from store with advanced filtering/sorting logic
+const filteredGroupedTasks = computed(() => {
+  let filtered = [...taskStore.tasks];
+
+  // Filter by Projects
+  if (activeFilter.value.projects.length > 0) {
+    filtered = filtered.filter(t => t.project && activeFilter.value.projects.includes(t.project));
   }
-]);
 
-// Grouping logic
-const groupedTasks = computed(() => {
-  const groups: Record<string, typeof tasks.value> = {};
+  // Filter by Categories
+  if (activeFilter.value.categories.length > 0) {
+    filtered = filtered.filter(t => t.category && activeFilter.value.categories.includes(t.category));
+  }
 
-  // Define order of sections
-  const sections = ['Hoy', 'Mañana', 'Esta Semana'];
-  sections.forEach(s => groups[s] = []);
+  // Filter by Date Range
+  if (activeFilter.value.dateRange.start && activeFilter.value.dateRange.end) {
+    filtered = filtered.filter(t =>
+      t.createdAt >= activeFilter.value.dateRange.start! &&
+      t.createdAt <= activeFilter.value.dateRange.end!
+    );
+  }
 
-  tasks.value.forEach(task => {
-    const s = task.section;
-    if (!groups[s]) {
-      groups[s] = [];
-    }
-    groups[s].push(task);
+  // Filter by Tags
+  if (activeFilter.value.tags.length > 0) {
+    filtered = filtered.filter(t => activeFilter.value.tags.includes(t.tagColor));
+  }
+
+  // Apply Sorting
+  filtered.sort((a, b) => {
+    const factor = activeFilter.value.sortOrder === 'desc' ? -1 : 1;
+    return (a.createdAt - b.createdAt) * factor;
   });
 
-  // Remove empty sections if any
+  // Re-group for the sections
+  const groups: Record<string, typeof filtered> = {
+    'Hoy': [],
+    'Mañana': [],
+    'Esta Semana': [],
+    'Próximamente': []
+  };
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const todayTs = now.getTime();
+  const tomorrowTs = todayTs + 86400000;
+  const nextWeekTs = todayTs + (86400000 * 7);
+
+  filtered.forEach(task => {
+    const taskDate = new Date(task.scheduledAt);
+    taskDate.setHours(0, 0, 0, 0);
+    const taskTs = taskDate.getTime();
+
+    if (taskTs === todayTs) {
+      groups['Hoy']!.push(task);
+    } else if (taskTs === tomorrowTs) {
+      groups['Mañana']!.push(task);
+    } else if (taskTs < nextWeekTs) {
+      groups['Esta Semana']!.push(task);
+    } else {
+      groups['Próximamente']!.push(task);
+    }
+  });
+
   return Object.fromEntries(
     Object.entries(groups).filter(([_, group]) => group.length > 0)
   );
 });
 
 // Event Handlers
-const handleStartTask = (task: any) => {
-  console.log('Starting task:', task.title);
+const handleChatTask = () => {
+  navigateTo('/chat');
 };
 
-const handleEditTask = (task: any) => {
-  console.log('Editing task:', task.title);
+const handleManualTask = () => {
+  editingTask.value = null;
+  isModalOpen.value = true;
+};
+
+const handleEditClick = (task: any) => {
+  editingTask.value = { ...task };
+  isModalOpen.value = true;
+};
+
+const handleSaveTask = (formData: any) => {
+  if (editingTask.value) {
+    taskStore.updateTask(editingTask.value.id, formData);
+  } else {
+    taskStore.addTask(formData);
+  }
+  closeModal();
+};
+
+const closeModal = () => {
+  isModalOpen.value = false;
+  editingTask.value = null;
+};
+
+const handlePreviewClick = (task: any) => {
+  previewingTask.value = task;
+  isPreviewOpen.value = true;
+};
+
+const closePreview = () => {
+  isPreviewOpen.value = false;
+  previewingTask.value = null;
+};
+
+const handleEditFromPreview = (task: any) => {
+  editingTask.value = { ...task };
+  isPreviewOpen.value = false;
+  isModalOpen.value = true;
+};
+
+const handleActionAndClosePreview = (action: 'complete' | 'cancel', task: any) => {
+  if (action === 'complete') {
+    taskStore.completeTask(task.id);
+  } else if (action === 'cancel') {
+    taskStore.cancelTask(task.id);
+  }
+  closePreview();
 };
 
 const handleMoreActions = (task: any) => {
-  console.log('More actions for task:', task.title);
-};
-
-const handleNewTask = () => {
-  console.log('Opening new task chat...');
+  // Option: could open a menu or delete
+  if (confirm('¿Eliminar esta tarea?')) {
+    taskStore.deleteTask(task.id);
+  }
 };
 </script>
 
