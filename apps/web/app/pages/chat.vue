@@ -24,7 +24,7 @@
         <div>
           <div style="color: var(--text-secondary); margin-bottom: 5px"
             :style="[msg.role == 'user' ? { textAlign: 'right' } : {}]">
-            {{ msg.role === 'assistant' ? 'Raya' : 'Tú' }}
+            {{ msg.role === 'assistant' ? 'Aether' : 'Tú' }}
           </div>
           <div class="message-bubble glass">
             <div v-if="msg.role === 'assistant'" class="" v-html="output(msg.content)"></div>
