@@ -190,9 +190,12 @@ const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: 
 };
 
 const handleMoreActions = async (task: any) => {
-  // Option: could open a menu or delete
-  if (confirm('¿Eliminar esta tarea?')) {
+  // Improved coherence: offer choices instead of immediate deletion
+  const wantsToDelete = confirm('¿Deseas eliminar esta tarea? (Si cancelas, podrás editarla)');
+  if (wantsToDelete) {
     await taskStore.deleteTask(task.id);
+  } else {
+    handleEditClick(task);
   }
 };
 </script>

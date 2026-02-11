@@ -8,7 +8,9 @@
   /* Dark Theme (Default) */
   --bg-primary: #0a0e1a;
   --bg-secondary: #131825;
+  --bg-secondary-rgb: 19, 24, 37;
   --bg-tertiary: #1e2537;
+  --bg-tertiary-rgb: 30, 37, 55;
   --text-primary: #ffffff;
   --text-secondary: #a0aec0;
   --text-tertiary: #718096;
@@ -25,7 +27,9 @@
   /* Light Theme */
   --bg-primary: #f7fafc;
   --bg-secondary: #ffffff;
+  --bg-secondary-rgb: 255, 255, 255;
   --bg-tertiary: #edf2f7;
+  --bg-tertiary-rgb: 237, 242, 247;
   --text-primary: #1a202c;
   --text-secondary: #4a5568;
   --text-tertiary: #718096;

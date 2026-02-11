@@ -5,9 +5,11 @@
             <div class="task-text">
                 <div class="title-row">
                     <h3 class="task-title">{{ task.title }}</h3>
-                    <span v-if="task.status !== 'pending'" class="status-badge" :class="task.status">
-                        {{ getStatusLabel(task.status) }}
-                    </span>
+                    <div class="title-actions">
+                        <span v-if="task.status !== 'pending'" class="status-badge" :class="task.status">
+                            {{ getStatusLabel(task.status) }}
+                        </span>
+                    </div>
                 </div>
                 <div class="task-subtext">
                     <span v-if="task.category" class="task-category">{{ task.category }}</span>
@@ -34,33 +36,32 @@
         </div>
 
         <!-- Hover Actions -->
-        <div class="task-actions">
-            <button class="preview-btn-icon" @click="$emit('preview', task)" title="Ver detalles">
-                <span class="material-symbols-outlined">visibility</span>
-            </button>
+        <div class="task-actions-overlay">
+            <div class="actions-container">
+                <button v-if="task.status === 'in-progress'" class="action-btn-small stop-btn"
+                    @click.stop="$emit('stop', task)">
+                    <span class="material-symbols-outlined">pause_circle</span>
+                    Pausar
+                </button>
+                <button v-else class="action-btn-small start-btn" @click.stop="$emit('start', task)">
+                    <span class="material-symbols-outlined">play_circle</span>
+                    Iniciar
+                </button>
 
-            <button v-if="task.status === 'in-progress'" class="action-btn stop-btn" @click="$emit('stop', task)">
-                <span class="material-symbols-outlined">stop</span>
-                Detener
-            </button>
-            <button v-else class="action-btn start-btn" @click="$emit('start', task)">
-                <span class="material-symbols-outlined">play_arrow</span>
-                Iniciar
-            </button>
+                <button class="action-btn-small complete-btn" @click.stop="$emit('complete', task)">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Terminar
+                </button>
 
-            <button class="action-btn complete-btn" @click="$emit('complete', task)">
-                <span class="material-symbols-outlined">check_circle</span>
-                Realizada
-            </button>
-
-            <button class="action-btn cancel-btn" @click="$emit('cancel', task)">
-                <span class="material-symbols-outlined">cancel</span>
-                Cancelar
-            </button>
-
-            <button class="more-btn" @click="$emit('more', task)">
-                <span class="material-symbols-outlined">more_vert</span>
-            </button>
+                <div class="" style="display: flex; gap: 0.5rem;">
+                    <button class="more-btn" @click.stop="$emit('edit', task)">
+                        <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button class="preview-btn-inline" @click.stop="$emit('preview', task)" title="Ver detalles">
+                        <span class="material-symbols-outlined">visibility</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -308,66 +309,7 @@ defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
     pointer-events: auto;
 }
 
-.preview-btn-icon {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.preview-btn-icon:hover {
-    background: var(--bg-secondary);
-    color: var(--accent-primary);
-    border-color: var(--accent-primary);
-    transform: scale(1.05);
-}
-
-.action-btn {
-    height: 40px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.start-btn {
-    flex-grow: 1;
-    background: var(--accent-primary);
-    color: white;
-    border: none;
-}
-
-.start-btn:hover {
-    filter: brightness(1.1);
-    transform: scale(1.02);
-}
-
-.edit-btn {
-    padding: 0 1.25rem;
-    background: transparent;
-    border: 1px solid var(--glass-border);
-    color: var(--text-primary);
-}
-
-.edit-btn:hover {
-    background: var(--glass-bg);
-}
-
-.more-btn {
-    width: 40px;
-    height: 40px;
+.preview-btn-inline {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -375,6 +317,131 @@ defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
     border: none;
     color: var(--text-tertiary);
     cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.preview-btn-inline:hover {
+    color: var(--accent-primary);
+    background: var(--glow);
+}
+
+.title-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.task-actions-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--bg-secondary-rgb), 0.85);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease-in-out;
+    z-index: 10;
+}
+
+.task-card:hover .task-actions-overlay {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.actions-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transform: translateY(10px);
+    transition: transform 0.2s ease-out;
+}
+
+.task-card:hover .actions-container {
+    transform: translateY(0);
+}
+
+.action-btn-small {
+    height: 36px;
+    padding: 0 1rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border: none;
+}
+
+.start-btn {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.start-btn:hover {
+    filter: brightness(1.2);
+    transform: scale(1.05);
+}
+
+.stop-btn {
+    background: #f59e0b;
+    color: white;
+}
+
+.stop-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+}
+
+.complete-btn {
+    background: #10b981;
+    color: white;
+}
+
+.complete-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+}
+
+.cancel-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.cancel-btn:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.more-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.more-btn:hover {
+    background: var(--glass-bg);
+    color: var(--text-primary);
 }
 
 @media (max-width: 768px) {
