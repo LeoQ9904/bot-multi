@@ -9,6 +9,8 @@ import { InMemCacheService } from '../memory/in-mem-cache.service';
 import { DynamicMemoryService } from '../memory/dynamic-memory.service';
 import { IdentityService } from './identity.service';
 import { SearchService } from './search.service';
+import { TasksDataService } from './tasks-data.service';
+import { TasksService } from '../../tasks/tasks.service';
 
 @Injectable()
 export class AIService {
@@ -21,6 +23,8 @@ export class AIService {
     private readonly dynamicMemory: DynamicMemoryService,
     private readonly identityService: IdentityService,
     private readonly searchService: SearchService,
+    private readonly tasksData: TasksDataService,
+    private readonly tasksService: TasksService,
   ) {
     this.client = new BedrockRuntimeClient({
       region: process.env.AWS_REGION || 'us-east-1',
@@ -113,7 +117,10 @@ export class AIService {
       searchResults = await this.searchService.search(prompt);
     }
 
-    // 6. Prepare full prompt with identity, date, search results, and context
+    // 6. Load Task Context
+    const taskData = await this.tasksData.getFormattedTasks(userId);
+
+    // 7. Prepare full prompt with identity, date, search results, and context
     const now = new Date();
     const dateStr = now.toLocaleDateString('es-CO', {
       weekday: 'long',
@@ -168,7 +175,50 @@ export class AIService {
       5. NEVER simulate the user's response. Stop speaking immediately after your turn.
       `;
 
-    let systemInstructions = `${identityText}\n\n${dateInstruction}\n\n${contextPlataforma}\n\n${formatResponse}`;
+    const taskSystemContext = `
+      ## Task Management System:
+      You have access to the user's task list and you can create or modify tasks.
+      
+      ### Task Interface:
+      \`\`\`typescript
+      interface Task {
+        title: string;
+        project?: string;
+        description?: string;
+        category: string;
+        status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
+        priority: 1 | 2 | 3;
+        duration: string; // e.g., "30 min", "1h"
+        tagColor: string; // "red", "amber", "emerald", "blue", "purple"
+        scheduledAt: number; // Unix timestamp in milliseconds
+      }
+      \`\`\`
+
+      ### Current Tasks (JSON):
+      ${taskData}
+
+      ### Commands (CRITICAL):
+      When you need to create or modify a task based on the user's request, you MUST include one of these commands at the end of your response:
+      - [TASK_OP:CREATE:{"title": "...", "category": "...", "scheduledAt": timestamp, ...}]
+      - [TASK_OP:UPDATE:{"id": "...", "status": "completed", ...}]
+      - [TASK_OP:DELETE:{"id": "..."}]
+
+      ### Guidelines for Listing Information:
+      When the user asks to list tasks, do NOT output the raw JSON. You must format the list beautifully for a chat interface:
+      - Use emojis for status and priority (e.g., 🔴 High, 🟢 Low, ✅ Done, 📅 Date).
+      - Group tasks logically (e.g., "Para Hoy", "Esta Semana", "Pendientes").
+      - Highlight the task title in bold.
+      - Do **NOT** show the Task ID in the output unless explicitly asked.
+      - Be concise but informative.
+
+      ### Guidelines for Task Operations:
+      1. Use the current date (${dateStr}) to calculate timestamps for "tomorrow", etc.
+      2. Be precise with categories and projects if the user mentions them.
+      3. **MANDATORY**: For [TASK_OP:UPDATE] and [TASK_OP:DELETE], you MUST provide the exact "id" from the JSON list provided above. If you don't provide the ID, the operation will fail.
+      4. **ONLY** include fields that exist in the Task interface. Do **NOT** include "dateStr" or other extra fields in the [TASK_OP] command.
+    `;
+
+    let systemInstructions = `${identityText}\n\n${dateInstruction}\n\n${contextPlataforma}\n\n${taskSystemContext}\n\n${formatResponse}`;
 
     // Add strict anti-hallucination rules when search results are present
     if (searchResults) {
@@ -213,19 +263,54 @@ export class AIService {
         const type = memoryMatch[1].toLowerCase();
         const content = memoryMatch[2].trim();
 
-        // Map to MemoryType enum
         let memoryType: any = 'general';
         if (type === 'task') memoryType = 'tasks';
         if (type === 'note') memoryType = 'notes';
         if (type === 'reminder') memoryType = 'reminders';
 
         await this.dynamicMemory.saveMemory(userId, memoryType, content);
-
-        // Clean the command from the response so the user doesn't see it (optional, but cleaner)
         aiResponse = aiResponse.replace(memoryRegex, '').trim();
       }
 
-      // 7. Save to conversation history (cleaned response)
+      // 9. Parse and Execute Task Operations [TASK_OP:ACTION:JSON_DATA]
+      // Using 'gis' flags to allow global matching across multiple lines
+      const taskOpRegex = /\[TASK_OP:(CREATE|UPDATE|DELETE):({.+?})\]/gis;
+      const taskOpMatches = [...aiResponse.matchAll(taskOpRegex)];
+
+      for (const match of taskOpMatches) {
+        const action = match[1].toUpperCase();
+        console.log(`[AI] Task Operation detected: ${action}`);
+        try {
+          const jsonData = JSON.parse(match[2]);
+          console.log(`[AI] Operation Data:`, jsonData);
+
+          if (action === 'CREATE') {
+            const filteredData = this.filterTaskData(jsonData, 'CREATE');
+            await this.tasksService.create(userId, filteredData as any);
+          } else if (action === 'UPDATE') {
+            const filteredData = this.filterTaskData(jsonData, 'UPDATE');
+            if (filteredData.id) {
+              const { id, ...updates } = filteredData as any;
+              await this.tasksService.update(userId, id, updates);
+            } else {
+              console.warn('[AI] UPDATE operation missing required ID field');
+            }
+          } else if (action === 'DELETE') {
+            if (jsonData.id) {
+              await this.tasksService.remove(userId, jsonData.id);
+            } else {
+              console.warn('[AI] DELETE operation missing required ID field');
+            }
+          }
+        } catch (opError) {
+          console.error(`Failed to execute task op ${action}:`, opError);
+        }
+      }
+
+      // Clean ALL commands from the response
+      aiResponse = aiResponse.replace(taskOpRegex, '').trim();
+
+      // 10. Save to conversation history (cleaned response)
       await this.markdownMemory.saveMessage(
         userId,
         conversationId,
@@ -284,5 +369,33 @@ export class AIService {
       response: cleanText,
       options,
     };
+  }
+
+  private filterTaskData(data: any, op: 'CREATE' | 'UPDATE'): any {
+    const validFields = [
+      'title',
+      'project',
+      'description',
+      'category',
+      'status',
+      'priority',
+      'duration',
+      'tagColor',
+      'scheduledAt',
+      'startedAt',
+      'completedAt',
+    ];
+
+    if (op === 'UPDATE') {
+      validFields.push('id');
+    }
+
+    const filtered: any = {};
+    for (const key of validFields) {
+      if (data[key] !== undefined) {
+        filtered[key] = data[key];
+      }
+    }
+    return filtered;
   }
 }

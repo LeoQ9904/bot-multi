@@ -292,6 +292,7 @@ defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
     inset: 0;
     background: var(--bg-secondary);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     padding: 0 1.5rem;

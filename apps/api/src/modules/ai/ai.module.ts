@@ -7,9 +7,12 @@ import { DynamicMemoryService } from './memory/dynamic-memory.service';
 import { IdentityService } from './services/identity.service';
 import { IdentityController } from './identity.controller';
 import { SearchService } from './services/search.service';
+import { TasksDataService } from './services/tasks-data.service';
+import { TasksModule } from '../tasks/tasks.module';
 
 @Module({
-    providers: [AIService, MarkdownMemoryService, InMemCacheService, DynamicMemoryService, IdentityService, SearchService],
+    imports: [TasksModule],
+    providers: [AIService, MarkdownMemoryService, InMemCacheService, DynamicMemoryService, IdentityService, SearchService, TasksDataService],
     controllers: [AIController, IdentityController],
     exports: [AIService, IdentityService],
 })
