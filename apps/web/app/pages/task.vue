@@ -47,7 +47,7 @@ import TaskDetailModal from '~/components/tasks/TaskDetailModal.vue';
 const taskStore = useTaskStore();
 
 onMounted(() => {
-  taskStore.initializeExampleData();
+  taskStore.fetchTasks();
 });
 
 // Modal State
@@ -150,11 +150,11 @@ const handleEditClick = (task: any) => {
   isModalOpen.value = true;
 };
 
-const handleSaveTask = (formData: any) => {
+const handleSaveTask = async (formData: any) => {
   if (editingTask.value) {
-    taskStore.updateTask(editingTask.value.id, formData);
+    await taskStore.updateTask(editingTask.value.id, formData);
   } else {
-    taskStore.addTask(formData);
+    await taskStore.addTask(formData);
   }
   closeModal();
 };
@@ -180,19 +180,19 @@ const handleEditFromPreview = (task: any) => {
   isModalOpen.value = true;
 };
 
-const handleActionAndClosePreview = (action: 'complete' | 'cancel', task: any) => {
+const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: any) => {
   if (action === 'complete') {
-    taskStore.completeTask(task.id);
+    await taskStore.completeTask(task.id);
   } else if (action === 'cancel') {
-    taskStore.cancelTask(task.id);
+    await taskStore.cancelTask(task.id);
   }
   closePreview();
 };
 
-const handleMoreActions = (task: any) => {
+const handleMoreActions = async (task: any) => {
   // Option: could open a menu or delete
   if (confirm('¿Eliminar esta tarea?')) {
-    taskStore.deleteTask(task.id);
+    await taskStore.deleteTask(task.id);
   }
 };
 </script>

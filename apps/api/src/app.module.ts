@@ -6,6 +6,7 @@ import { FirebaseAdminModule } from './common/firebase-admin/firebase-admin.modu
 import { AIModule } from './modules/ai/ai.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { UsersModule } from './modules/users/users.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -13,7 +14,8 @@ import { UsersModule } from './modules/users/users.module';
     FirebaseAdminModule,
     AIModule,
     IntegrationsModule,
-    UsersModule
+    UsersModule,
+    TasksModule
   ],
   controllers: [AppController],
   providers: [AppService],

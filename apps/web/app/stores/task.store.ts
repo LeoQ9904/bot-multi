@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia';
-import type { Task, TaskStatus } from '../types/task.types';
+import type { Task } from '../types/task.types';
+import { useTaskService } from '../services/task.service';
+import { useFirebaseAuth } from '~/composables/useAuth';
 
 export const useTaskStore = defineStore('tasks', {
     state: () => ({
@@ -8,133 +10,107 @@ export const useTaskStore = defineStore('tasks', {
     }),
 
     actions: {
-        addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>) {
-            const newTask: Task = {
-                ...task,
-                id: Date.now().toString(),
-                createdAt: Date.now(),
-                scheduledAt: task.scheduledAt || Date.now() + 3600000,
-                status: 'pending',
-            };
-            this.tasks.push(newTask);
-            return newTask;
-        },
-
-        updateTask(id: string, updates: Partial<Task>) {
-            const index = this.tasks.findIndex(t => t.id === id);
-            if (index !== -1) {
-                this.tasks[index] = { ...this.tasks[index], ...updates } as Task;
+        async fetchTasks() {
+            const { user } = useFirebaseAuth();
+            if (!user.value) return;
+            try {
+                const token = await user.value.getIdToken();
+                const res = await useTaskService().findAll(token);
+                if (res && res.data) {
+                    this.tasks = res.data;
+                }
+            } catch (e) {
+                console.error('Failed to fetch tasks', e);
             }
         },
 
-        deleteTask(id: string) {
-            this.tasks = this.tasks.filter(t => t.id !== id);
-            if (this.activeTaskId === id) this.activeTaskId = null;
+        async addTask(task: Omit<Task, 'id' | 'createdAt' | 'status'>) {
+            const { user } = useFirebaseAuth();
+            if (!user.value) return;
+            try {
+                const token = await user.value.getIdToken();
+                const res = await useTaskService().create(task as any, token);
+                if (res && res.data) {
+                    this.tasks.push(res.data);
+                    return res.data;
+                }
+            } catch (e) {
+                console.error('Failed to add task', e);
+            }
         },
 
-        startTask(id: string) {
-            // If there's another active task, stop it first
+        async updateTask(id: string, updates: Partial<Task>) {
+            const { user } = useFirebaseAuth();
+            if (!user.value) return;
+            try {
+                const token = await user.value.getIdToken();
+                const res = await useTaskService().update(id, updates, token);
+                if (res && res.data) {
+                    const index = this.tasks.findIndex(t => t.id === id);
+                    if (index !== -1) {
+                        this.tasks[index] = res.data;
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to update task', e);
+            }
+        },
+
+        async deleteTask(id: string) {
+            const { user } = useFirebaseAuth();
+            if (!user.value) return;
+            try {
+                const token = await user.value.getIdToken();
+                await useTaskService().delete(id, token);
+                this.tasks = this.tasks.filter(t => t.id !== id);
+                if (this.activeTaskId === id) this.activeTaskId = null;
+            } catch (e) {
+                console.error('Failed to delete task', e);
+            }
+        },
+
+        async startTask(id: string) {
             if (this.activeTaskId && this.activeTaskId !== id) {
-                this.stopTask(this.activeTaskId);
+                await this.stopTask(this.activeTaskId);
             }
-
             this.activeTaskId = id;
-            this.updateTask(id, {
+            await this.updateTask(id, {
                 status: 'in-progress',
                 startedAt: Date.now()
             });
         },
 
-        stopTask(id: string) {
+        async stopTask(id: string) {
             if (this.activeTaskId === id) {
                 this.activeTaskId = null;
             }
             const task = this.tasks.find(t => t.id === id);
             if (task && task.status === 'in-progress') {
-                this.updateTask(id, { status: 'pending' });
+                await this.updateTask(id, { status: 'pending' });
             }
         },
 
-        completeTask(id: string) {
+        async completeTask(id: string) {
             if (this.activeTaskId === id) {
                 this.activeTaskId = null;
             }
-            this.updateTask(id, {
+            await this.updateTask(id, {
                 status: 'completed',
                 completedAt: Date.now()
             });
         },
 
-        cancelTask(id: string) {
+        async cancelTask(id: string) {
             if (this.activeTaskId === id) {
                 this.activeTaskId = null;
             }
-            this.updateTask(id, {
+            await this.updateTask(id, {
                 status: 'cancelled'
             });
         },
 
         initializeExampleData() {
-            if (this.tasks.length > 0) return;
-
-            const now = new Date();
-            const getTs = (days: number, hours: number) => {
-                const d = new Date(now);
-                d.setDate(d.getDate() + days);
-                d.setHours(hours, 0, 0, 0);
-                return d.getTime();
-            };
-
-            this.tasks = [
-                {
-                    id: '1',
-                    title: 'Revisión de diseño UI Raya App',
-                    project: 'Branding 2024',
-                    category: 'Diseño',
-                    scheduledAt: getTs(0, 10),
-                    priority: 2,
-                    tagColor: 'red',
-                    duration: '45 min',
-                    status: 'pending',
-                    createdAt: Date.now()
-                },
-                {
-                    id: '2',
-                    title: 'Preparar reporte de métricas Q3',
-                    project: 'Operaciones',
-                    category: 'Gestión',
-                    scheduledAt: getTs(0, 15),
-                    priority: 3,
-                    tagColor: 'amber',
-                    duration: '2h',
-                    status: 'pending',
-                    createdAt: Date.now()
-                },
-                {
-                    id: '3',
-                    title: 'Feedback sesión con equipo creativo',
-                    project: null,
-                    category: 'Reunión',
-                    scheduledAt: getTs(1, 11),
-                    priority: 1,
-                    tagColor: 'emerald',
-                    duration: '30 min',
-                    status: 'pending',
-                    createdAt: Date.now()
-                },
-                {
-                    id: '4',
-                    title: 'Planificación estratégica de contenidos v2',
-                    project: null,
-                    category: 'Estrategia',
-                    scheduledAt: getTs(3, 9),
-                    priority: 2,
-                    tagColor: 'emerald',
-                    duration: '1.5h',
-                    status: 'pending',
-                    createdAt: Date.now()
-                }
-            ];
+            // No longer used, handled by fetchTasks if data exists in DB
         }
     },
 

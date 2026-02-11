@@ -15,6 +15,17 @@ export const IA_ENDPOINTS = {
 } as const;
 
 /**
+ * Endpoints de Tareas
+ */
+export const TASK_ENDPOINTS = {
+    LIST: '/tasks',
+    CREATE: '/tasks',
+    BY_ID: (id: string) => `/tasks/${id}`,
+    UPDATE: (id: string) => `/tasks/${id}`,
+    DELETE: (id: string) => `/tasks/${id}`,
+} as const;
+
+/**
  * Endpoints de Usuarios
  */
 export const USER_ENDPOINTS = {
