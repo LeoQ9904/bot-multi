@@ -112,8 +112,8 @@ defineExpose({ close });
 .popover-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(2px);
     z-index: 2500;
     animation: fadeIn 0.2s ease;
 }
@@ -123,10 +123,10 @@ defineExpose({ close });
     z-index: 2600;
     margin-top: 0.5rem;
     background: var(--bg-secondary);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(30px);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    box-shadow: 0 20px 40px var(--shadow);
+    box-shadow: 0 10px 30px var(--shadow);
     padding: 1rem;
     animation: popIn 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
@@ -181,11 +181,7 @@ defineExpose({ close });
 }
 
 /* Positions (Desktop only) */
-@media (min-width: 769px) {
-    .bottom-right {
-        /* Handled by floatingStyle top/left now */
-    }
-}
+@media (min-width: 769px) {}
 
 /* ... the rest can be cleaned up or kept if needed for reference, but floatingStyle overrides it ... */
 </style>

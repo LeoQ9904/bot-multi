@@ -84,8 +84,8 @@ const filteredGroupedTasks = computed(() => {
   // Filter by Date Range
   if (activeFilter.value.dateRange.start && activeFilter.value.dateRange.end) {
     filtered = filtered.filter(t =>
-      t.createdAt >= activeFilter.value.dateRange.start! &&
-      t.createdAt <= activeFilter.value.dateRange.end!
+      t.scheduledAt >= activeFilter.value.dateRange.start! &&
+      t.scheduledAt <= activeFilter.value.dateRange.end!
     );
   }
 

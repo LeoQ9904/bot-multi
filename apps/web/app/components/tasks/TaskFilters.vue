@@ -42,9 +42,17 @@
                     <p class="section-label">Orden</p>
                     <div class="toggle-group">
                         <button class="toggle-item" :class="{ active: modelValue.sortOrder === 'desc' }"
-                            @click="updateFilter({ sortOrder: 'desc', type: 'date' })">Más recientes</button>
+                            @click="updateFilter({ sortOrder: 'desc' })">Más recientes</button>
                         <button class="toggle-item" :class="{ active: modelValue.sortOrder === 'asc' }"
-                            @click="updateFilter({ sortOrder: 'asc', type: 'date' })">Más antiguas</button>
+                            @click="updateFilter({ sortOrder: 'asc' })">Más antiguas</button>
+                    </div>
+                </div>
+                <div class="menu-section">
+                    <p class="section-label">Rango Personalizado</p>
+                    <div class="date-picker-container">
+                        <VueDatePicker v-model="internalDateRange" range :teleport="true" dark format="dd/MM/yyyy"
+                            auto-apply placeholder="Seleccionar rango" class="custom-datepicker"
+                            :enable-time-picker="false" @update:model-value="handleManualDate" />
                     </div>
                 </div>
                 <div class="menu-section">
@@ -81,9 +89,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useTaskStore } from '~/stores/task.store';
 import BasePopover from '../ui/BasePopover.vue';
+import { VueDatePicker } from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
 
 interface FilterState {
     type: string;
@@ -102,6 +112,17 @@ const emit = defineEmits(['update:modelValue']);
 
 const store = useTaskStore();
 const listType = ref<'projects' | 'categories'>('projects');
+
+const internalDateRange = ref<[Date, Date] | null>(null);
+
+// Sync internal range with props
+watch(() => props.modelValue.dateRange, (newRange) => {
+    if (newRange.start && newRange.end) {
+        internalDateRange.value = [new Date(newRange.start), new Date(newRange.end)];
+    } else {
+        internalDateRange.value = null;
+    }
+}, { immediate: true });
 
 const currentList = computed(() => {
     return listType.value === 'projects' ? store.allProjects : store.allCategories;
@@ -141,7 +162,7 @@ const toggleItem = (item: string) => {
 };
 
 const resetAll = () => {
-    updateFilter({ projects: [], categories: [], type: 'all' });
+    updateFilter({ projects: [], categories: [], type: 'all', dateRange: { start: null, end: null } });
 };
 
 const toggleTag = (tag: string) => {
@@ -165,16 +186,36 @@ const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     let start = now.getTime();
-    let end = now.getTime() + 86400000;
+    let end = now.getTime() + 86400000 - 1; // End of day
 
     if (option === 'tomorrow') {
         start += 86400000;
         end += 86400000;
     } else if (option === 'week') {
-        end = start + (86400000 * 7);
+        end = start + (86400000 * 7) - 1;
     }
 
     updateFilter({ dateRange: { start, end }, type: 'date' });
+};
+
+const handleManualDate = (value: any) => {
+    if (value && value[0] && value[1]) {
+        const start = new Date(value[0]);
+        start.setHours(0, 0, 0, 0);
+
+        const end = new Date(value[1]);
+        end.setHours(23, 59, 59, 999);
+
+        updateFilter({
+            dateRange: { start: start.getTime(), end: end.getTime() },
+            type: 'date'
+        });
+    } else {
+        updateFilter({
+            dateRange: { start: null, end: null },
+            type: props.modelValue.projects.length > 0 || props.modelValue.categories.length > 0 ? 'all' : 'all'
+        });
+    }
 };
 </script>
 
@@ -211,6 +252,7 @@ const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
     background: var(--accent-primary);
     color: white;
     border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px var(--glow);
 }
 
 .filter-menu {
@@ -304,6 +346,13 @@ const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
     font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quick-btn:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-secondary);
+    color: var(--accent-primary);
 }
 
 .tag-list {
@@ -329,6 +378,7 @@ const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
 .tag-item.active {
     border-color: var(--accent-primary);
     background: var(--bg-secondary);
+    color: var(--accent-primary);
 }
 
 .tag-dot {
@@ -337,16 +387,58 @@ const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
     border-radius: 50%;
 }
 
+.date-picker-container {
+    padding: 0.25rem 0;
+}
+
+:deep(.dp__theme_dark) {
+    --dp-background-color: var(--bg-tertiary);
+    --dp-text-color: var(--text-primary);
+    --dp-hover-color: var(--bg-secondary);
+    --dp-hover-text-color: var(--text-primary);
+    --dp-hover-icon-color: var(--accent-primary);
+    --dp-primary-color: var(--accent-primary);
+    --dp-primary-text-color: #ffffff;
+    --dp-secondary-color: var(--text-tertiary);
+    --dp-border-color: var(--glass-border);
+    --dp-menu-border-color: var(--glass-border);
+    --dp-border-radius: 12px;
+}
+
+:deep(.dp__input) {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.5rem 1rem 0.5rem 2.5rem;
+    font-family: inherit;
+    font-size: 0.8rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-primary);
+}
+
+:deep(.dp__input:focus) {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 4px var(--glow);
+}
+
+:deep(.dp__input_icon) {
+    left: 0.75rem;
+    color: var(--text-tertiary);
+}
+
 .tag-dot.red {
     background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
 }
 
 .tag-dot.amber {
     background: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
 }
 
 .tag-dot.emerald {
     background: #10b981;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
 }
 
 @media (max-width: 768px) {
