@@ -60,6 +60,9 @@
                     <button class="preview-btn-inline" @click.stop="$emit('preview', task)" title="Ver detalles">
                         <span class="material-symbols-outlined">visibility</span>
                     </button>
+                    <button class="preview-btn-inline" @click.stop="$emit('more', task)" title="Eliminar">
+                        <span class="material-symbols-outlined">delete</span>
+                    </button>
                 </div>
             </div>
         </div>

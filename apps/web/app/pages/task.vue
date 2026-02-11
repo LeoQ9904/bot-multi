@@ -31,7 +31,7 @@
     <TaskDetailModal :is-open="isPreviewOpen" :task="previewingTask" @close="closePreview" @edit="handleEditFromPreview"
       @start="taskStore.startTask($event.id)" @stop="taskStore.stopTask($event.id)"
       @complete="handleActionAndClosePreview('complete', $event)"
-      @cancel="handleActionAndClosePreview('cancel', $event)" />
+      @cancel="handleActionAndClosePreview('cancel', $event)" @more="handleMoreActions" />
   </div>
 </template>
 
@@ -190,12 +190,10 @@ const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: 
 };
 
 const handleMoreActions = async (task: any) => {
-  // Improved coherence: offer choices instead of immediate deletion
-  const wantsToDelete = confirm('¿Deseas eliminar esta tarea? (Si cancelas, podrás editarla)');
+  const wantsToDelete = confirm('¿Deseas eliminar esta tarea?');
   if (wantsToDelete) {
     await taskStore.deleteTask(task.id);
-  } else {
-    handleEditClick(task);
+    closePreview();
   }
 };
 </script>

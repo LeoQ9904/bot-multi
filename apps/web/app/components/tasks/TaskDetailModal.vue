@@ -74,23 +74,19 @@
                     <button class="btn-action start-stop" :class="{ 'stop': task.status === 'in-progress' }"
                         @click="handleAction">
                         <span class="material-symbols-outlined">{{ task.status === 'in-progress' ? 'stop' : 'play_arrow'
-                            }}</span>
-                        {{ task.status === 'in-progress' ? 'Detener' : 'Iniciar' }}
+                        }}</span>
                     </button>
 
                     <button class="btn-action complete" @click="$emit('complete', task)">
                         <span class="material-symbols-outlined">check_circle</span>
-                        Realizada
-                    </button>
-
-                    <button class="btn-action cancel" @click="$emit('cancel', task)">
-                        <span class="material-symbols-outlined">cancel</span>
-                        Cancelar
                     </button>
 
                     <button class="btn-edit" @click="$emit('edit', task)">
                         <span class="material-symbols-outlined">edit</span>
-                        Editar
+                    </button>
+
+                    <button class="btn-edit" @click="$emit('more', task)">
+                        <span class="material-symbols-outlined">delete</span>
                     </button>
                 </div>
             </div>
@@ -104,7 +100,7 @@ const props = defineProps<{
     task: any;
 }>();
 
-const emit = defineEmits(['close', 'edit', 'start', 'stop', 'complete', 'cancel']);
+const emit = defineEmits(['close', 'edit', 'start', 'stop', 'complete', 'more']);
 
 const getStatusLabel = (status: string) => {
     switch (status) {
@@ -416,7 +412,7 @@ const handleAction = () => {
     }
 
     .footer-actions {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(4, 1fr);
     }
 
     .task-title {

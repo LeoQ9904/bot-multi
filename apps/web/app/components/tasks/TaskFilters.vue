@@ -223,7 +223,7 @@ const handleManualDate = (value: any) => {
 .filter-bar {
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 2.5rem;
+    margin-bottom: 0.5rem;
     overflow-x: visible;
     padding-bottom: 0.5rem;
 }
