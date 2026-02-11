@@ -34,8 +34,6 @@ const onSave = (type: string) => {
         : { token: notionToken.value, databaseId: notionDbId.value };
 
     emit('save', type, config);
-
-    // Note: Parent should handle clearing tokens on success
 };
 </script>
 

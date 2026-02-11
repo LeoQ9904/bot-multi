@@ -64,14 +64,6 @@ const toggleTheme = (theme: string) => {
   emit('displayTheme', isDarkMode.value);
 };
 
-const toggleMobileMenu = () => {
-  isMobileOpen.value = !isMobileOpen.value;
-};
-
-const closeMobileMenu = () => {
-  isMobileOpen.value = false;
-};
-
 const openSettings = () => {
   isSettingsOpen.value = true;
   fetchAllSettings();
@@ -98,6 +90,7 @@ const fetchAllSettings = async () => {
   // Fetch Integrations
   try {
     const intRes = await useIntegrationService().list(token);
+    console.log('Integrations', intRes);
     if (intRes && intRes.data) {
       const map: Record<string, any> = {};
       intRes.data.forEach((i: any) => (map[i.type] = i));
@@ -128,14 +121,12 @@ const saveIdentity = async (newIdentity: any) => {
 const saveIntegration = async (type: string, config: any) => {
   const { user } = useFirebaseAuth();
   if (!user.value) return;
-
   isConnecting.value[type] = true;
   try {
     const token = await user.value.getIdToken();
-    await useIntegrationService().create(type, config, token);
+    const response = await useIntegrationService().create(type, config, token);
+    integrations.value[type] = response.data;
     success(`${type} conectado exitosamente`);
-
-    await fetchAllSettings();
   } catch (e) {
     toastError(`Error al conectar ${type}`);
   } finally {
@@ -161,8 +152,8 @@ const deleteIntegration = async (id: string, type: string) => {
     const token = await user.value.getIdToken();
     await useIntegrationService().delete(id, token);
     success(`${type} desconectado`);
+    integrations.value[type] = null;
     confirmDeleteId.value = null;
-    await fetchAllSettings();
   } catch (e) {
     toastError(`Error al desconectar ${type}`);
   } finally {
