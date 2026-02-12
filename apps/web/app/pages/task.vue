@@ -17,48 +17,13 @@
       </div>
 
       <!-- Enhanced empty state -->
-      <div v-if="taskStore.tasks.length === 0" class="empty-state-enhanced">
-        <div class="empty-visual">
-          <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-svg">
-            <circle cx="100" cy="100" r="80" fill="url(#grad1)" fill-opacity="0.1" />
-            <defs>
-              <linearGradient id="grad1" x1="20" y1="20" x2="180" y2="180" gradientUnits="userSpaceOnUse">
-                <stop stop-color="var(--accent-primary)" />
-                <stop offset="1" stop-color="var(--accent-secondary)" />
-              </linearGradient>
-            </defs>
-            <!-- Abstract Robot/Icon -->
-            <rect x="60" y="70" width="80" height="60" rx="12" stroke="url(#grad1)" stroke-width="2"
-              fill="var(--bg-tertiary)" />
-            <circle cx="85" cy="95" r="4" fill="var(--accent-primary)">
-              <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="115" cy="95" r="4" fill="var(--accent-primary)">
-              <animate attributeName="opacity" values="1;0.3;1" dur="2s" begin="0.5s" repeatCount="indefinite" />
-            </circle>
-            <path d="M90 115C90 115 95 120 100 120C105 120 110 115 110 115" stroke="var(--accent-primary)"
-              stroke-width="2" stroke-linecap="round" />
-            <!-- Floating particles -->
-            <circle cx="40" cy="60" r="3" fill="var(--accent-tertiary)">
-              <animate attributeName="cy" values="60;50;60" dur="3s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="160" cy="140" r="4" fill="var(--accent-primary)">
-              <animate attributeName="cy" values="140;150;140" dur="4s" repeatCount="indefinite" />
-            </circle>
-          </svg>
-        </div>
-        <h2 class="empty-title">¿Listo para empezar tu día?</h2>
-        <p class="empty-description">Aún no tienes tareas por aquí. Organiza tus pendientes y deja que Aether te ayude a
-          ser más productivo, lo puedes hacer creando las tareas manualmente o puedes pedirle a Aether que te ayude a
-          crearlas.</p>
-        <button class="empty-cta" @click="handleManualTask">
-          <span class="material-symbols-outlined">add_circle</span>
-          Crear mi primera tarea
-        </button>
-      </div>
+      <EmptyPage @manual="handleManualTask" @chat="handleChatTask" v-if="taskStore.tasks.length === 0"
+        title="¿Listo para empezar tu día?"
+        subtitle="Aún no tienes tareas por aquí. Organiza tus pendientes y deja que Aether te ayude a ser más productivo, lo puedes hacer creando las tareas manualmente o puedes pedirle a Aether que te ayude a crearlas."
+        manualText="Crear mi primera tarea" chatText="Chat con Aether" />
 
       <div class="fab-spacer"></div>
-      <TaskFab @chat="handleChatTask" @manual="handleManualTask" />
+      <FabNew @chat="handleChatTask" @manual="handleManualTask" iaText="Tarea por Chat" manualText="Manual" />
 
       <TaskFormModal :is-open="isModalOpen" :initial-data="editingTask" @close="closeModal" @save="handleSaveTask" />
 
@@ -76,10 +41,11 @@ import { ref, computed, onMounted } from 'vue';
 import { useTaskStore } from '~/stores/task.store';
 import TaskFilters from '~/components/tasks/TaskFilters.vue';
 import TaskSection from '~/components/tasks/TaskSection.vue';
-import TaskFab from '~/components/tasks/TaskFab.vue';
+import FabNew from '~/components/FabNew.vue';
 import TaskFormModal from '~/components/tasks/TaskFormModal.vue';
 import TaskDetailModal from '~/components/tasks/TaskDetailModal.vue';
 import HeaderPage from '~/components/HeaderPage.vue';
+import EmptyPage from '~/components/EmptyPage.vue';
 
 const taskStore = useTaskStore();
 
@@ -363,80 +329,6 @@ const handleMoreActions = async (task: any) => {
   }
 }
 
-/* Extra small devices */
-@media (max-width: 480px) {
-  /* No specific styles left here after component extraction */
-}
-
-.page-subtitle {
-  color: var(--text-tertiary);
-  font-size: 1.1rem;
-}
-
-/* Enhanced Empty State */
-.empty-state-enhanced {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem 2rem;
-  text-align: center;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 32px;
-  margin-top: 2rem;
-  animation: fadeInDown 0.6s ease-out;
-}
-
-.empty-visual {
-  width: 200px;
-  height: 200px;
-  margin-bottom: 2rem;
-}
-
-.empty-svg {
-  width: 100%;
-  height: 100%;
-  filter: drop-shadow(0 0 20px var(--glow));
-}
-
-.empty-title {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-.empty-description {
-  color: var(--text-tertiary);
-  font-size: 1.1rem;
-  max-width: 400px;
-  margin-bottom: 2.5rem;
-  line-height: 1.6;
-}
-
-.empty-cta {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 2rem;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
-  border: none;
-  border-radius: 16px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 24px var(--glow);
-}
-
-.empty-cta:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px var(--glow);
-}
-
 @keyframes fadeInDown {
   from {
     opacity: 0;
@@ -446,21 +338,6 @@ const handleMoreActions = async (task: any) => {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@media (max-width: 768px) {
-  .empty-state-enhanced {
-    padding: 3rem 1.5rem;
-    margin-top: 1rem;
-  }
-
-  .empty-title {
-    font-size: 1.5rem;
-  }
-
-  .empty-description {
-    font-size: 1rem;
   }
 }
 </style>

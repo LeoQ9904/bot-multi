@@ -10,16 +10,10 @@
         <p>Cargando notas...</p>
       </div>
 
-      <div v-else-if="filteredNotes.length === 0" class="empty-state glass">
-        <span class="material-symbols-outlined empty-icon">note_stack</span>
-        <h3>No se encontraron notas</h3>
-        <p v-if="searchQuery || selectedTag">Prueba ajustando tus filtros.</p>
-        <p v-else>Comienza creando tu primera nota para organizar mejor tus ideas.</p>
-        <button class="btn-primary" @click="openCreateModal">
-          <span class="material-symbols-outlined">add</span>
-          Crear Nota
-        </button>
-      </div>
+      <EmptyPage v-else-if="filteredNotes.length === 0" title="¿Listo para empezar tu día?"
+        subtitle="Aún no tienes notas por aquí. Organiza tus pensamientos y deja que Aether te ayude a ser más productivo, lo puedes hacer creando las notas manualmente o puedes pedirle a Aether que te ayude a crearlas."
+        manualText="Crear mi primera nota" chatText="Chat con Aether" @manual="openCreateModal"
+        @chat="handleChatTask" />
 
       <div v-else class="notes-sections-wrapper">
         <NoteSection :notes="filteredNotes" @preview="handlePreview" @edit="handleEdit" @delete="handleDelete" />
@@ -33,7 +27,7 @@
     <NoteFormModal :is-open="isFormModalOpen" :note="selectedNote" @close="isFormModalOpen = false"
       @save="handleSaveNote" />
 
-    <NoteFab @click="openCreateModal" />
+    <FabNew @manual="openCreateModal" @chat="handleChatTask" iaText="Nota por Chat" manualText="Manual" />
   </div>
 </template>
 
@@ -45,8 +39,9 @@ import NoteFilters from '../components/notes/NoteFilters.vue';
 import NoteSection from '../components/notes/NoteSection.vue';
 import NoteDetailModal from '../components/notes/NoteDetailModal.vue';
 import NoteFormModal from '../components/notes/NoteFormModal.vue';
-import NoteFab from '../components/notes/NoteFab.vue';
+import FabNew from '~/components/FabNew.vue';
 import HeaderPage from '~/components/HeaderPage.vue';
+import EmptyPage from '~/components/EmptyPage.vue';
 
 const noteStore = useNoteStore();
 
@@ -76,6 +71,11 @@ const filteredNotes = computed(() => {
 const openCreateModal = () => {
   selectedNote.value = null;
   isFormModalOpen.value = true;
+};
+
+// Event Handlers
+const handleChatTask = () => {
+  navigateTo('/chat');
 };
 
 const handlePreview = (note: Note) => {
