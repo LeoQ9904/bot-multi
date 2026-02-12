@@ -54,8 +54,8 @@
     </div>
 
     <div class="chat-input-area glass">
-      <input v-model="input" @keyup.enter="sendMessage" placeholder="Escribe tu mensaje..." :disabled="isTyping"
-        class="chat-input" />
+      <input ref="chatInputRef" v-model="input" @keyup.enter="sendMessage" placeholder="Escribe tu mensaje..."
+        :disabled="isTyping" class="chat-input" />
       <button @click="sendMessage" :disabled="!input || isTyping" class="send-btn">
         <svg viewBox="0 0 24 24" class="icon">
           <path d="M2.01 21L23 12L2.01 3L2 10l15 2l-15 2z" fill="currentColor" />
@@ -75,6 +75,7 @@ import { useNoteStore } from '~/stores/note.store';
 
 const { user } = useFirebaseAuth();
 const input = ref('');
+const chatInputRef = ref<HTMLInputElement | null>(null);
 const isTyping = ref(false);
 const scrollContainer = ref<HTMLElement | null>(null);
 const messages = ref<{ role: 'user' | 'assistant'; content: string, options?: string[] }[]>([]);
@@ -109,6 +110,15 @@ const saveChatHistory = () => {
 onMounted(() => {
   loadChatHistory();
   scrollToBottom();
+
+  // Check for initial message from other pages
+  const route = useRoute();
+  if (route.query.initialMessage) {
+    input.value = route.query.initialMessage as string;
+    nextTick(() => {
+      chatInputRef.value?.focus();
+    });
+  }
 });
 
 watch(

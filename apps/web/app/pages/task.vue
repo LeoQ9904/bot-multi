@@ -140,7 +140,12 @@ const filteredGroupedTasks = computed(() => {
 
 // Event Handlers
 const handleChatTask = () => {
-  navigateTo('/chat');
+  navigateTo({
+    path: '/chat',
+    query: {
+      initialMessage: 'Hola! Quiero que me ayudes a crear la siguiente tarea: '
+    }
+  });
 };
 
 const handleManualTask = () => {
