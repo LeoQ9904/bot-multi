@@ -213,7 +213,7 @@ const output = (msg: string) => {
 
 @media (max-width: 768px) {
   .chat-container {
-    height: calc(100vh - 150px);
+    height: calc(100vh - 138px);
     padding: 0.5rem;
     gap: 0.75rem;
   }

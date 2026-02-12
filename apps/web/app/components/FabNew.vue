@@ -95,7 +95,7 @@ defineProps({
 
 @media (max-width: 768px) {
     .fab-group {
-        bottom: 90px;
+        bottom: 65px;
         width: calc(100% - 2rem);
         max-width: 400px;
         gap: 0.5rem;

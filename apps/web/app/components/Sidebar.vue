@@ -41,7 +41,7 @@ const confirmDeleteId = ref<string | null>(null);
 const emit = defineEmits(['displayTheme']);
 
 const menuItems = [
-  { label: 'Inicio', icon: 'home', path: '/' },
+  { label: 'Inicio', icon: 'home_app_logo', path: '/' },
   { label: 'Chat', icon: 'chat', path: '/chat' },
   { label: 'Task', icon: 'task_alt', path: '/task' },
   { label: 'Notes', icon: 'note', path: '/notes' },
