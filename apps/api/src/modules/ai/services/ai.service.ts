@@ -143,6 +143,7 @@ export class AIService {
     const dateInstruction = `
       ## Current Date and Time:
       La fecha y hora actual es ${dateStr}. Usa esta información para responder preguntas relacionadas con el tiempo, programar eventos, o cualquier consulta que requiera conocimiento de la fecha actual.
+      IMPORTANTE: El año actual es ${new Date().getFullYear()}. NO uses 2023, 2024 ni 2025. Asegúrate de que cualquier fecha futura que generes sea coherente con el año ${new Date().getFullYear()}. 
       ## Ubicación:
       El usuario se encuentra en Colombia, por lo que la zona horaria a considerar es GMT-5. Ten esto en cuenta para cualquier consulta relacionada con horarios, eventos locales, o información dependiente de la ubicación.
       ## Idioma:
@@ -183,6 +184,7 @@ export class AIService {
     const taskSystemContext = `
       ## Task Management System:
       You have access to the user's task list and you can create or modify tasks.
+      Es importante que tengas encuenta que la fecha actual es ${dateStr}, por lo que debes que usar esta fecha para cualquier tarea que se te pida crear o modificar. La fecha actual en formato unix es ${now.getTime()}. Para tareas que no le indiquen una fecha, debes que usar la fecha actual, para calcular fechas futuras o pasadas debes que usar la fecha actual como base.
       
       ### Task Interface:
       \`\`\`typescript
@@ -217,7 +219,7 @@ export class AIService {
       - Be concise but informative.
 
       ### Guidelines for Task Operations:
-      1. Use the current date (${dateStr}) to calculate timestamps for "tomorrow", etc.
+      1. Use the current date (${dateStr}) to calculate timestamps for "tomorrow", etc. Ensure the year is 2026.
       2. Be precise with categories and projects if the user mentions them.
       3. **MANDATORY**: For [TASK_OP:UPDATE] and [TASK_OP:DELETE], you MUST provide the exact "id" from the JSON list provided above. If you don't provide the ID, the operation will fail.
       4. **ONLY** include fields that exist in the Task interface. Do **NOT** include "dateStr" or other extra fields in the [TASK_OP] command.

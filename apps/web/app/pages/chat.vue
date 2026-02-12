@@ -70,6 +70,9 @@ import Avatar from '~/components/icons/Avatar.vue';
 import Logo from '~/components/icons/Logo.vue';
 import { IaService } from '~/services/ia.service';
 import { marked } from 'marked'
+import { useTaskStore } from '~/stores/task.store';
+import { useNoteStore } from '~/stores/note.store';
+
 const { user } = useFirebaseAuth();
 const input = ref('');
 const isTyping = ref(false);
@@ -143,6 +146,15 @@ const sendMessage = async () => {
     const response = await IaService.chat(userMsg, 'main', token!);
     if (response) {
       messages.value.push({ role: 'assistant', content: response.data.response, options: response.data.options || [] });
+
+      // Refresh data stores as the AI might have created tasks or notes
+      // Ideally we should check response.data for a flag, but for now refreshing on every successful chat response is safer
+      // to ensure UI is in sync.
+      await Promise.all([
+        useTaskStore().fetchTasks(),
+        useNoteStore().fetchNotes()
+      ]);
+
     } else {
       messages.value.push({
         role: 'assistant',
