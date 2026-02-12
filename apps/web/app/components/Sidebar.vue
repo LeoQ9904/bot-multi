@@ -10,17 +10,17 @@ import SettingsModal from './settings/SettingsModal.vue';
 import AppearanceTab from './settings/AppearanceTab.vue';
 import IdentityTab from './settings/IdentityTab.vue';
 import IntegrationsTab from './settings/IntegrationsTab.vue';
+import FabMoreLinks from './FabMoreLinks.vue';
 
 const { logout, user } = useFirebaseAuth();
 const route = useRoute();
 
 const isDarkMode = ref(true);
-const isMobileOpen = ref(false);
 const isSettingsOpen = ref(false);
+const isMoreLinksOpen = ref(false);
 const selectedTheme = ref('dark');
 const currentTab = ref('appearance');
 
-const { show: showLoading, hide: hideLoading } = useLoading();
 const { success, error: toastError } = useToast();
 
 // Identity State
@@ -44,9 +44,9 @@ const menuItems = [
   { label: 'Inicio', icon: 'home', path: '/' },
   { label: 'Chat', icon: 'chat', path: '/chat' },
   { label: 'Task', icon: 'task_alt', path: '/task' },
-  { label: 'Calendar', icon: 'calendar_month', path: '/calendar' },
-  { label: 'Expenses', icon: 'paid', path: '/expenses' },
   { label: 'Notes', icon: 'note', path: '/notes' },
+  { label: 'Expenses', icon: 'paid', path: '/expenses' },
+  { label: 'Calendar', icon: 'calendar_month', path: '/calendar' },
   { label: 'Insights', icon: 'analytics', path: '/insights' },
 ];
 
@@ -67,6 +67,16 @@ const toggleTheme = (theme: string) => {
 const openSettings = () => {
   isSettingsOpen.value = true;
   fetchAllSettings();
+};
+
+const closeMoreLinks = () => {
+  setTimeout(() => {
+    isMoreLinksOpen.value = false;
+  }, 150);
+};
+
+const openMoreLinks = () => {
+  isMoreLinksOpen.value = !isMoreLinksOpen.value;
 };
 
 const closeSettings = () => {
@@ -230,14 +240,22 @@ onMounted(() => {
     <!-- Mobile Footer Navigation -->
     <nav class="mobile-footer-nav">
       <ul class="mobile-menu-list">
-        <li v-for="item in menuItems.slice(0, 7)" :key="item.path" class="mobile-menu-item">
+        <li v-for="item in menuItems.slice(0, 4)" :key="item.path" class="mobile-menu-item">
           <NuxtLink :to="item.path" class="mobile-menu-link" :class="{ active: isActive(item.path) }">
             <span class="material-symbols-outlined">{{ item.icon }}</span>
-            <span class="mobile-menu-label">{{ item.label }}</span>
           </NuxtLink>
+        </li>
+        <li class="mobile-menu-item">
+          <button class="mobile-menu-link" :class="{ active: isMoreLinksOpen }" style="cursor: pointer;"
+            @click="openMoreLinks" @blur="closeMoreLinks">
+            <span class="material-symbols-outlined">apps</span>
+          </button>
         </li>
       </ul>
     </nav>
+
+    <FabMoreLinks v-if="isMoreLinksOpen" @chat="openSettings" @manual="openSettings" />
+
 
     <!-- Refactored Settings Modal -->
     <SettingsModal :is-open="isSettingsOpen" v-model:current-tab="currentTab" @close="closeSettings" @logout="logout">
@@ -460,7 +478,7 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 72px;
+  height: 55px;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--glass-border);
@@ -493,10 +511,12 @@ onMounted(() => {
   font-size: 0.7rem;
   transition: all 0.2s ease;
   height: 100%;
+  background: none;
+  border: none;
 }
 
 .mobile-menu-link .material-symbols-outlined {
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 .mobile-menu-link.active {
