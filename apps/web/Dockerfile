@@ -5,7 +5,8 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
-RUN pnpm install --frozen-lockfile --filter web...
+# ✅ Sin --filter para que pnpm linkee correctamente todos los node_modules
+RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /app
@@ -18,6 +19,8 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web ./apps/web
 WORKDIR /app/apps/web
+# ✅ Forzar que pnpm resuelva los links del workspace antes de build
+RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
 FROM node:20-alpine AS runner

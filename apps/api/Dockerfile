@@ -6,7 +6,8 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
-RUN pnpm install --frozen-lockfile --filter api...
+# ✅ Sin --filter para que linkee correctamente todos los binarios
+RUN pnpm install --frozen-lockfile
 
 FROM base AS build
 WORKDIR /app
@@ -15,6 +16,8 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api ./apps/api
 WORKDIR /app/apps/api
+# ✅ Resolver links del workspace antes de build
+RUN pnpm install --frozen-lockfile
 RUN pnpm prisma generate
 RUN pnpm build
 
