@@ -7,7 +7,7 @@
   <div class="app-shell" :class="{ 'light-theme': !isDarkMode }">
     <Sidebar v-if="user" @displayTheme="toggleTheme" />
 
-    <main v-if="user" :class="{ 'with-sidebar': user, 'mobile-layout': true }">
+    <main v-if="user" :class="{ 'with-sidebar': user, 'mobile-layout': true, 'sidebar-collapsed': isCollapsed }">
       <NuxtPage />
     </main>
 
@@ -234,8 +234,11 @@
 
 <script setup lang="ts">
 import { nextTick, ref, onMounted } from 'vue';
+import { useSidebar } from '~/composables/useSidebar';
+
 const { user, loading, loginWithGoogle, syncProfile } = useFirebaseAuth();
 const { isLoading, loadingTitle, loadingMessage } = useLoading();
+const { isCollapsed } = useSidebar();
 
 // Theme management
 const isDarkMode = ref(true);
@@ -282,8 +285,14 @@ main.with-sidebar {
   transition: margin-left 0.3s ease;
 }
 
+main.with-sidebar.sidebar-collapsed {
+  margin-left: 60px;
+}
+
 @media (max-width: 768px) {
-  main.with-sidebar {
+
+  main.with-sidebar,
+  main.with-sidebar.sidebar-collapsed {
     margin-left: 0;
     padding-top: 64px;
     /* Mobile Header Height */

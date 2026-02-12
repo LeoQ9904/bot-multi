@@ -11,7 +11,9 @@ import AppearanceTab from './settings/AppearanceTab.vue';
 import IdentityTab from './settings/IdentityTab.vue';
 import IntegrationsTab from './settings/IntegrationsTab.vue';
 import FabMoreLinks from './FabMoreLinks.vue';
+import { useSidebar } from '~/composables/useSidebar';
 
+const { isCollapsed, toggleSidebar } = useSidebar();
 const { logout, user } = useFirebaseAuth();
 const route = useRoute();
 
@@ -196,26 +198,37 @@ onMounted(() => {
     </header>
 
     <!-- Desktop Sidebar (Hidden on Mobile) -->
-    <aside class="sidebar desktop-only">
+    <aside class="sidebar desktop-only" :class="{ 'collapsed': isCollapsed }">
       <!-- Header -->
       <div class="sidebar-header">
         <div class="app-brand">
           <Logo />
           <span>Aether</span>
         </div>
+        <!-- Toggle Btn -->
+        <button class="toggle-btn" @click="toggleSidebar">
+          <span class="material-symbols-outlined">{{ isCollapsed ? 'first_page' : 'last_page' }}</span>
+        </button>
       </div>
 
       <!-- Navigation Menu -->
       <nav class="sidebar-nav">
         <ul class="menu-list">
           <li v-for="item in menuItems" :key="item.path" class="menu-item">
-            <NuxtLink :to="item.path" class="menu-link" :class="{ active: isActive(item.path) }">
+            <NuxtLink :to="item.path" class="menu-link" :class="{ active: isActive(item.path) }"
+              :title="isCollapsed ? item.label : ''">
               <span class="material-symbols-outlined">{{ item.icon }}</span>
-              <span class="text-sm">{{ item.label }}</span>
+              <span class="text-label text-sm">{{ item.label }}</span>
             </NuxtLink>
           </li>
         </ul>
       </nav>
+
+      <!-- Footer Toggle (Alternative placement if needed) -->
+      <button class="collapse-toggle" @click="toggleSidebar" v-if="false">
+        <span class="material-symbols-outlined">chevron_left</span>
+      </button>
+
 
       <!-- User Section -->
       <div class="sidebar-user">
@@ -334,11 +347,24 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   z-index: 1000;
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 60px;
 }
 
 /* Sidebar Header */
 .sidebar-header {
   padding: 2rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 2rem 0;
+  justify-content: center;
 }
 
 .app-brand {
@@ -351,13 +377,66 @@ onMounted(() => {
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .app-brand .mobile-logo {
+  display: none;
+}
+
+/* Hide the logo component if it's not the mobile-logo class but the standard Logo component */
+/* The specific targeting is handled by hiding the .app-brand parent below */
+
+/* Actually, let's just make sure the toggle button is the only thing visible in the header when collapsed */
+.sidebar.collapsed .sidebar-header {
+  padding: 1rem 0;
+  /* Reduce padding */
+  justify-content: center;
+}
+
+.sidebar.collapsed .app-brand {
+  display: none;
+  /* Hide the brand entirely so only the toggle button matches */
+}
+
+.sidebar.collapsed .app-brand span {
+  display: none;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.toggle-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.sidebar.collapsed .toggle-btn {
+  display: flex;
+  /* Ensure it remains visible */
+  margin: 0 auto;
+  /* Center it */
 }
 
 /* Navigation Menu */
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.5rem;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  padding: 0.5rem 0;
 }
 
 .menu-list {
@@ -379,6 +458,12 @@ onMounted(() => {
   font-weight: 500;
   transition: all 0.2s ease;
   border-radius: 12px;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .menu-link {
+  justify-content: center;
+  padding: 0.75rem 0;
 }
 
 .menu-link:hover {
@@ -393,6 +478,14 @@ onMounted(() => {
   box-shadow: 0 4px 12px var(--glow);
 }
 
+.text-label {
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .text-label {
+  display: none;
+}
+
 /* User Section */
 .sidebar-user {
   padding: 1.25rem;
@@ -401,6 +494,14 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .sidebar-user {
+  padding: 1.25rem 0;
+  justify-content: center;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .user-profile {
@@ -410,12 +511,17 @@ onMounted(() => {
   min-width: 0;
 }
 
+.sidebar.collapsed .user-profile {
+  justify-content: center;
+}
+
 .user-avatar {
   width: 40px;
   height: 40px;
   border-radius: 10px;
   object-fit: cover;
   border: 2px solid var(--accent-primary);
+  flex-shrink: 0;
 }
 
 .user-avatar-fallback {
@@ -428,10 +534,16 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .user-info {
   min-width: 0;
+  transition: opacity 0.2s;
+}
+
+.sidebar.collapsed .user-info {
+  display: none;
 }
 
 .user-name {
@@ -464,12 +576,38 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .action-btn:hover {
   background: var(--glass-bg);
   transform: translateY(-2px);
 }
+
+/* Collapse Toggle Button (Bottom) */
+.collapse-toggle {
+  margin: 0.5rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  border-radius: 8px;
+  align-self: flex-end;
+}
+
+.sidebar.collapsed .collapse-toggle {
+  align-self: center;
+  transform: rotate(180deg);
+}
+
+.collapse-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
 
 /* Mobile Footer Navigation */
 .mobile-footer-nav {

@@ -219,7 +219,7 @@ const handlePreviewNote = (note: any) => navigateTo('/notes'); // Ideally open m
 
 @media (min-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: 1fr 2fr;
+    grid-template-columns: 1fr 1fr;
     /* 1/3 for context, 2/3 for tasks */
   }
 }

@@ -14,7 +14,13 @@
         <div class="notes-grid">
             <div v-for="note in notes" :key="note.id" class="note-card glass-panel" @click="$emit('preview', note)">
                 <div class="note-header">
-                    <span class="note-tag" :style="{ color: note.tagColor }">{{ note.tagColor || 'General' }}</span>
+                    <span class="note-tag" :style="{
+                        backgroundColor: getTagColor(note.tagColor) + '20',
+                        color: getTagColor(note.tagColor),
+                        borderColor: getTagColor(note.tagColor) + '30'
+                    }">
+                        {{ note.tagColor || 'Nota' }}
+                    </span>
                     <span class="material-symbols-outlined open-icon">open_in_new</span>
                 </div>
                 <h4 class="note-title">{{ note.title }}</h4>
@@ -63,6 +69,20 @@ const formatDate = (date: number | string | Date) => {
         hour: '2-digit',
         minute: '2-digit'
     });
+};
+
+const getTagColor = (colorName: string) => {
+    const colors: Record<string, string> = {
+        'blue': '#3b82f6',
+        'purple': '#a855f7',
+        'emerald': '#10b981',
+        'amber': '#f59e0b',
+        'red': '#ef4444',
+        'gray': '#9ca3af',
+        'pink': '#ec4899',
+        'indigo': '#6366f1'
+    };
+    return colors[colorName] || colorName || '#9ca3af';
 };
 </script>
 
@@ -166,6 +186,9 @@ const formatDate = (date: number | string | Date) => {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
 }
 
 .open-icon {

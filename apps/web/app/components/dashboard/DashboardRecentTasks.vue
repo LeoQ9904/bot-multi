@@ -37,21 +37,42 @@
                 </div>
             </div>
 
-            <!-- Secondary Tasks -->
             <div v-for="task in secondaryTasks" :key="task.id" class="secondary-task-card glass-panel"
                 @click="$emit('preview', task)">
                 <div class="secondary-header">
-                    <div class="task-icon-wrapper" :class="getCategoryColorClass(task.category)">
-                        <span class="material-symbols-outlined">{{ getCategoryIcon(task.category) }}</span>
+                    <div class="task-info-left">
+                        <div class="task-icon-wrapper" :class="getCategoryColorClass(task.category)">
+                            <span class="material-symbols-outlined">{{ getCategoryIcon(task.category) }}</span>
+                        </div>
+                        <div class="task-badges">
+                            <span class="task-tag-dot" :style="{ backgroundColor: getTagColor(task.tagColor) }"
+                                :title="task.tagColor"></span>
+                            <span v-if="task.status === 'in-progress'" class="status-badge running">
+                                <span class="material-symbols-outlined text-xs">play_arrow</span> En curso
+                            </span>
+                        </div>
                     </div>
-                    <div class="status-indicator">
-                        <span class="material-symbols-outlined" :class="{ 'completed': task.status === 'completed' }">
-                            {{ task.status === 'completed' ? 'check_circle' : 'radio_button_unchecked' }}
-                        </span>
+
+                    <div class="secondary-actions" @click.stop>
+                        <button v-if="task.status !== 'in-progress' && task.status !== 'completed'"
+                            class="action-btn-mini start" @click="$emit('start', task)" title="Iniciar">
+                            <span class="material-symbols-outlined">play_arrow</span>
+                        </button>
+                        <button v-if="task.status === 'in-progress'" class="action-btn-mini pause"
+                            @click="$emit('stop', task)" title="Pausar">
+                            <span class="material-symbols-outlined">pause</span>
+                        </button>
+                        <button v-if="task.status !== 'completed'" class="action-btn-mini complete"
+                            @click="$emit('complete', task)" title="Completar">
+                            <span class="material-symbols-outlined">check</span>
+                        </button>
                     </div>
                 </div>
-                <h5 class="secondary-title">{{ task.title }}</h5>
-                <p class="secondary-desc">{{ task.description || 'Sin descripción' }}</p>
+                <div class="secondary-body">
+                    <h5 class="secondary-title" :class="{ 'completed': task.status === 'completed' }">{{ task.title }}
+                    </h5>
+                    <p class="secondary-desc">{{ task.description || 'Sin descripción' }}</p>
+                </div>
             </div>
 
             <!-- Empty State if no tasks -->
@@ -72,7 +93,7 @@ const props = defineProps<{
     tasks: Task[];
 }>();
 
-defineEmits(['start', 'stop', 'preview', 'create']);
+defineEmits(['start', 'stop', 'preview', 'create', 'complete']);
 
 const mainFocusTask = computed(() => {
     // Priority: In Progress -> High Priority -> First available
@@ -105,6 +126,20 @@ const getCategoryColorClass = (category?: string) => {
         default: return 'icon-default';
     }
 }
+
+const getTagColor = (colorName: string) => {
+    const colors: Record<string, string> = {
+        'blue': '#3b82f6',
+        'purple': '#a855f7',
+        'emerald': '#10b981',
+        'amber': '#f59e0b',
+        'red': '#ef4444',
+        'gray': '#9ca3af',
+        'pink': '#ec4899',
+        'indigo': '#6366f1'
+    };
+    return colors[colorName] || colorName || '#9ca3af';
+};
 </script>
 
 <style scoped>
@@ -377,5 +412,111 @@ const getCategoryColorClass = (category?: string) => {
     color: var(--accent-primary);
     font-weight: 600;
     cursor: pointer;
+}
+
+.task-info-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.task-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.task-tag-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: block;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 100px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-badge.running {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.secondary-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.glass-panel:hover .secondary-actions {
+    opacity: 1;
+}
+
+.action-btn-mini {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.action-btn-mini:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    transform: scale(1.05);
+}
+
+.action-btn-mini.start:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.action-btn-mini.pause:hover {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+.action-btn-mini.complete:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.action-btn-mini .material-symbols-outlined {
+    font-size: 1.1rem;
+}
+
+.secondary-title.completed {
+    text-decoration: line-through;
+    color: var(--text-tertiary);
+}
+
+.text-xs {
+    font-size: 0.9rem;
+}
+
+/* Mobile: always show actions */
+@media (max-width: 768px) {
+    .secondary-actions {
+        opacity: 1;
+    }
 }
 </style>
