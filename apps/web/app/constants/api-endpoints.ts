@@ -26,6 +26,17 @@ export const TASK_ENDPOINTS = {
 } as const;
 
 /**
+ * Endpoints de Notas
+ */
+export const NOTE_ENDPOINTS = {
+    LIST: '/notes',
+    CREATE: '/notes',
+    BY_ID: (id: string) => `/notes/${id}`,
+    UPDATE: (id: string) => `/notes/${id}`,
+    DELETE: (id: string) => `/notes/${id}`,
+} as const;
+
+/**
  * Endpoints de Usuarios
  */
 export const USER_ENDPOINTS = {

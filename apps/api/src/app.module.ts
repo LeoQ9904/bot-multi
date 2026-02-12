@@ -7,6 +7,7 @@ import { AIModule } from './modules/ai/ai.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { NotesModule } from './modules/notes/notes.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { TasksModule } from './modules/tasks/tasks.module';
     AIModule,
     IntegrationsModule,
     UsersModule,
-    TasksModule
+    TasksModule,
+    NotesModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -17,6 +17,11 @@
   --accent-primary: #667eea;
   --accent-secondary: #764ba2;
   --accent-tertiary: #f093fb;
+  --accent-blue: #60a5fa;
+  --accent-purple: #c084fc;
+  --accent-emerald: #34d399;
+  --accent-amber: #fbbf24;
+  --accent-red: #f87171;
   --glass-bg: rgba(255, 255, 255, 0.05);
   --glass-border: rgba(255, 255, 255, 0.1);
   --shadow: rgba(0, 0, 0, 0.4);
@@ -36,6 +41,11 @@
   --accent-primary: #5a67d8;
   --accent-secondary: #667eea;
   --accent-tertiary: #9f7aea;
+  --accent-blue: #3b82f6;
+  --accent-purple: #a855f7;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-red: #ef4444;
   --glass-bg: rgba(255, 255, 255, 0.9);
   --glass-border: rgba(0, 0, 0, 0.08);
   --shadow: rgba(0, 0, 0, 0.1);
@@ -154,7 +164,6 @@ body {
 
 .router-link-active {
   color: var(--accent-primary);
-  background: var(--glass-bg);
 }
 
 .link-icon {

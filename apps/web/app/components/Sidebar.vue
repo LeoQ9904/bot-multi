@@ -230,7 +230,7 @@ onMounted(() => {
     <!-- Mobile Footer Navigation -->
     <nav class="mobile-footer-nav">
       <ul class="mobile-menu-list">
-        <li v-for="item in menuItems.slice(0, 5)" :key="item.path" class="mobile-menu-item">
+        <li v-for="item in menuItems.slice(0, 7)" :key="item.path" class="mobile-menu-item">
           <NuxtLink :to="item.path" class="mobile-menu-link" :class="{ active: isActive(item.path) }">
             <span class="material-symbols-outlined">{{ item.icon }}</span>
             <span class="mobile-menu-label">{{ item.label }}</span>

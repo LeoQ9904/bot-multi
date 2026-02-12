@@ -10,7 +10,9 @@ import { DynamicMemoryService } from '../memory/dynamic-memory.service';
 import { IdentityService } from './identity.service';
 import { SearchService } from './search.service';
 import { TasksDataService } from './tasks-data.service';
+import { NotesDataService } from './notes-data.service';
 import { TasksService } from '../../tasks/tasks.service';
+import { NotesService } from '../../notes/notes.service';
 
 @Injectable()
 export class AIService {
@@ -24,7 +26,9 @@ export class AIService {
     private readonly identityService: IdentityService,
     private readonly searchService: SearchService,
     private readonly tasksData: TasksDataService,
+    private readonly notesData: NotesDataService,
     private readonly tasksService: TasksService,
+    private readonly notesService: NotesService,
   ) {
     this.client = new BedrockRuntimeClient({
       region: process.env.AWS_REGION || 'us-east-1',
@@ -117,8 +121,9 @@ export class AIService {
       searchResults = await this.searchService.search(prompt);
     }
 
-    // 6. Load Task Context
+    // 6. Load Task & Note Context
     const taskData = await this.tasksData.getFormattedTasks(userId);
+    const noteData = await this.notesData.getFormattedNotes(userId);
 
     // 7. Prepare full prompt with identity, date, search results, and context
     const now = new Date();
@@ -216,6 +221,32 @@ export class AIService {
       2. Be precise with categories and projects if the user mentions them.
       3. **MANDATORY**: For [TASK_OP:UPDATE] and [TASK_OP:DELETE], you MUST provide the exact "id" from the JSON list provided above. If you don't provide the ID, the operation will fail.
       4. **ONLY** include fields that exist in the Task interface. Do **NOT** include "dateStr" or other extra fields in the [TASK_OP] command.
+
+      ## Note Management System:
+      You can also create, update, or delete notes for the user.
+      
+      ### Note Interface:
+      \`\`\`typescript
+      interface Note {
+        id: string;
+        title: string;
+        content: string;
+        tagColor: string; // "red", "amber", "emerald", "blue", "purple"
+      }
+      \`\`\`
+
+      ### Current Notes (JSON):
+      ${noteData}
+
+      ### Note Commands:
+      When you need to perform actions on notes, use these commands:
+      - [NOTE_OP:CREATE:{"title": "...", "content": "...", "tagColor": "..."}]
+      - [NOTE_OP:UPDATE:{"id": "...", "content": "...", ...}]
+      - [NOTE_OP:DELETE:{"id": "..."}]
+
+      ### Note Guidelines:
+      - When listing notes, format them clearly with emojis.
+      - Use ** [NOTE_OP:UPDATE] ** or ** [NOTE_OP:DELETE] ** only with a valid "id" from the JSON list.
     `;
 
     let systemInstructions = `${identityText}\n\n${dateInstruction}\n\n${contextPlataforma}\n\n${taskSystemContext}\n\n${formatResponse}`;
@@ -307,8 +338,35 @@ export class AIService {
         }
       }
 
+      // 10. Parse and Execute Note Operations [NOTE_OP:ACTION:JSON_DATA]
+      const noteOpRegex = /\[NOTE_OP:(CREATE|UPDATE|DELETE):({.+?})\]/gis;
+      const noteOpMatches = [...aiResponse.matchAll(noteOpRegex)];
+
+      for (const match of noteOpMatches) {
+        const action = match[1].toUpperCase();
+        console.log(`[AI] Note Operation detected: ${action}`);
+        try {
+          const jsonData = JSON.parse(match[2]);
+          if (action === 'CREATE') {
+            await this.notesService.create(userId, jsonData);
+          } else if (action === 'UPDATE') {
+            if (jsonData.id) {
+              const { id, ...updates } = jsonData;
+              await this.notesService.update(userId, id, updates);
+            }
+          } else if (action === 'DELETE') {
+            if (jsonData.id) {
+              await this.notesService.remove(userId, jsonData.id);
+            }
+          }
+        } catch (opError) {
+          console.error(`Failed to execute note op ${action}:`, opError);
+        }
+      }
+
       // Clean ALL commands from the response
       aiResponse = aiResponse.replace(taskOpRegex, '').trim();
+      aiResponse = aiResponse.replace(noteOpRegex, '').trim();
 
       // 10. Save to conversation history (cleaned response)
       await this.markdownMemory.saveMessage(

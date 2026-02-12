@@ -8,11 +8,13 @@ import { IdentityService } from './services/identity.service';
 import { IdentityController } from './identity.controller';
 import { SearchService } from './services/search.service';
 import { TasksDataService } from './services/tasks-data.service';
+import { NotesDataService } from './services/notes-data.service';
 import { TasksModule } from '../tasks/tasks.module';
+import { NotesModule } from '../notes/notes.module';
 
 @Module({
-    imports: [TasksModule],
-    providers: [AIService, MarkdownMemoryService, InMemCacheService, DynamicMemoryService, IdentityService, SearchService, TasksDataService],
+    imports: [TasksModule, NotesModule],
+    providers: [AIService, MarkdownMemoryService, InMemCacheService, DynamicMemoryService, IdentityService, SearchService, TasksDataService, NotesDataService],
     controllers: [AIController, IdentityController],
     exports: [AIService, IdentityService],
 })
