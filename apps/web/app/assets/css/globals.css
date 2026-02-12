@@ -1087,3 +1087,36 @@ body {
     padding: 0.875rem 1.5rem;
   }
 }
+
+/* ===== Diseño de paginas internas ===== */
+.page-container {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding: 2rem;
+}
+
+.page-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1.5rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+  }
+}
+
+/* ===== Responsive text ===== */
+.not-view-text-movil {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .not-view-text-movil {
+    display: none !important;
+  }
+}

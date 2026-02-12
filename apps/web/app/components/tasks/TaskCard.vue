@@ -41,16 +41,16 @@
                 <button v-if="task.status === 'in-progress'" class="action-btn-small stop-btn"
                     @click.stop="$emit('stop', task)">
                     <span class="material-symbols-outlined">pause_circle</span>
-                    Pausar
+                    <span class="not-view-text-movil">Pausar</span>
                 </button>
                 <button v-else class="action-btn-small start-btn" @click.stop="$emit('start', task)">
                     <span class="material-symbols-outlined">play_circle</span>
-                    Iniciar
+                    <span class="not-view-text-movil">Iniciar</span>
                 </button>
 
                 <button class="action-btn-small complete-btn" @click.stop="$emit('complete', task)">
                     <span class="material-symbols-outlined">check_circle</span>
-                    Terminar
+                    <span class="not-view-text-movil">Terminar</span>
                 </button>
 
                 <div class="" style="display: flex; gap: 0.5rem;">
@@ -486,12 +486,6 @@ defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
     .edit-btn {
         padding: 0 0.75rem;
         font-size: 0.8rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .priority-badges {
-        display: none;
     }
 }
 </style>

@@ -5,7 +5,7 @@
             <template #trigger>
                 <button class="filter-chip" :class="{ active: modelValue.type === 'all' }">
                     {{ selectedLabel }}
-                    <span class="material-symbols-outlined">expand_more</span>
+                    <span class="material-symbols-outlined">expand_content</span>
                 </button>
             </template>
             <div class="filter-menu">
@@ -34,7 +34,7 @@
             <template #trigger>
                 <button class="filter-chip" :class="{ active: modelValue.type === 'date' }">
                     Fecha
-                    <span class="material-symbols-outlined">expand_more</span>
+                    <span class="material-symbols-outlined">expand_content</span>
                 </button>
             </template>
             <div class="filter-menu">
@@ -71,7 +71,7 @@
             <template #trigger>
                 <button class="filter-chip" :class="{ active: modelValue.tags.length > 0 }">
                     Etiquetas
-                    <span class="material-symbols-outlined">expand_more</span>
+                    <span class="material-symbols-outlined">expand_content</span>
                 </button>
             </template>
             <div class="filter-menu">
@@ -223,16 +223,15 @@ const handleManualDate = (value: any) => {
 .filter-bar {
     display: flex;
     gap: 0.75rem;
-    margin-bottom: 0.5rem;
     overflow-x: visible;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.4rem;
 }
 
 .filter-chip {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 1rem;
+    gap: 0.1rem;
+    padding: 0.1rem 0.7rem;
     border-radius: 100px;
     background: var(--bg-secondary);
     border: 1px solid var(--glass-border);
@@ -445,7 +444,7 @@ const handleManualDate = (value: any) => {
 
     /* Allow the filter bar to overflow but make popovers work */
     .filter-bar {
-        overflow-x: auto;
+        overflow-x: hidden;
         padding-right: 2rem;
     }
 }

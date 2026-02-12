@@ -1,10 +1,7 @@
 <template>
-  <div class="notes-page-container">
+  <div class="page-container">
     <div class="page-content">
-      <header class="page-header">
-        <h1 class="page-title">Mis Notas</h1>
-        <p class="page-subtitle">Captura tus ideas y pensamientos importantes</p>
-      </header>
+      <HeaderPage title="Mis Notas" subtitle="Captura tus ideas y pensamientos importantes" />
 
       <NoteFilters v-model:search="searchQuery" v-model:selectedTag="selectedTag" />
 
@@ -49,6 +46,7 @@ import NoteSection from '../components/notes/NoteSection.vue';
 import NoteDetailModal from '../components/notes/NoteDetailModal.vue';
 import NoteFormModal from '../components/notes/NoteFormModal.vue';
 import NoteFab from '../components/notes/NoteFab.vue';
+import HeaderPage from '~/components/HeaderPage.vue';
 
 const noteStore = useNoteStore();
 
@@ -113,35 +111,6 @@ const handleDelete = async (note: Note) => {
 </script>
 
 <style scoped>
-.notes-page-container {
-  min-height: 100vh;
-  background: var(--bg-primary);
-  padding: 2rem;
-}
-
-.page-content {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  margin-bottom: 2.5rem;
-}
-
-.page-title {
-  font-size: 2.5rem;
-  font-weight: 800;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 0.5rem;
-}
-
-.page-subtitle {
-  color: var(--text-tertiary);
-  font-size: 1.1rem;
-}
-
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -220,15 +189,5 @@ const handleDelete = async (note: Note) => {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-}
-
-@media (max-width: 768px) {
-  .notes-page-container {
-    padding: 1.5rem;
-  }
-
-  .page-title {
-    font-size: 2rem;
-  }
 }
 </style>
