@@ -263,8 +263,6 @@ export class AIService {
       contextSection = `Web Search Results:\n${searchResults}\n\n${contextSection}`;
     }
 
-    console.log('Full prompt:', contextSection)
-
     const fullPrompt = `Below are system instructions and conversation history.\n\nSystem: ${systemInstructions}\n\n${contextSection}\n\nHuman: ${prompt}\n\nAssistant:`;
 
     const input: InvokeModelCommandInput = {
