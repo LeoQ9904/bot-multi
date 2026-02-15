@@ -14,7 +14,7 @@ Backend NestJS para la plataforma Aether con IA, autenticación y gestión de in
 
 ## 📂 Estructura
 
-```
+```text
 src/
 ├── common/
 │   ├── filters/          # Exception filters
@@ -23,7 +23,9 @@ src/
 ├── modules/
 │   ├── ai/              # IA y gestión de identidad
 │   ├── users/           # Gestión de usuarios
-│   └── integrations/    # Telegram, Notion, etc.
+│   ├── integrations/    # Telegram, Notion, etc.
+│   ├── notes/           # CRUD de notas
+│   └── tasks/           # Gestión de tareas
 ├── interfaces/          # TypeScript interfaces
 ├── prisma.service.ts    # Prisma client
 └── main.ts             # Bootstrap
@@ -76,20 +78,38 @@ pnpm start:dev
 ## 📡 Endpoints
 
 ### Autenticación
+
 Todos los endpoints requieren header: `Authorization: Bearer <firebase_token>`
 
 ### AI
+
 - `POST /ai/chat` - Chat con IA
 - `GET /ai/identity` - Obtener identidad del bot
 - `POST /ai/identity` - Actualizar identidad
 
 ### Users
+
 - `GET /users/profile` - Perfil del usuario autenticado
 
 ### Integrations
+
 - `GET /integrations` - Listar integraciones
 - `POST /integrations` - Crear integración
 - `DELETE /integrations/:id` - Eliminar integración
+
+### Notes
+
+- `GET /notes` - Listar notas del usuario
+- `POST /notes` - Crear nota
+- `PATCH /notes/:id` - Actualizar nota
+- `DELETE /notes/:id` - Eliminar nota
+
+### Tasks
+
+- `GET /tasks` - Listar tareas del usuario
+- `POST /tasks` - Crear tarea
+- `PATCH /tasks/:id` - Actualizar tarea
+- `DELETE /tasks/:id` - Eliminar tarea
 
 ## 🗄️ Base de Datos
 
@@ -99,6 +119,8 @@ Todos los endpoints requieren header: `Authorization: Bearer <firebase_token>`
 - **Integration**: Integraciones (Telegram, Notion, etc.)
 - **Conversation**: Conversaciones por plataforma
 - **Message**: Mensajes de chat
+- **Note**: Notas con etiquetas y contenido
+- **Task**: Tareas con programación y estados
 
 ### Comandos Prisma
 
@@ -159,6 +181,7 @@ docker run -p 8080:8080 aether-api
 ## 🔍 Logs
 
 Los logs incluyen:
+
 - Peticiones HTTP (desarrollo)
 - Errores de autenticación
 - Operaciones de base de datos

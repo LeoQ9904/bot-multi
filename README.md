@@ -4,9 +4,9 @@ Plataforma de asistente de IA personalizable con integraciones multi-canal (Tele
 
 ## 🏗️ Arquitectura
 
-Monorepo con arquitectura modular:
+Monorepo con arquitectura modular que incluye gestión de tareas, notas y múltiples integraciones:
 
-```
+```text
 bot-multi/
 ├── apps/
 │   ├── api/          # Backend NestJS
@@ -19,6 +19,7 @@ bot-multi/
 ## 🚀 Tecnologías
 
 ### Backend (API)
+
 - **Framework**: NestJS 11
 - **Base de datos**: PostgreSQL + Prisma ORM
 - **Autenticación**: Firebase Admin SDK
@@ -26,12 +27,14 @@ bot-multi/
 - **Integraciones**: Telegraf (Telegram), Tavily (Search)
 
 ### Frontend (Web)
+
 - **Framework**: Nuxt 3
 - **UI**: Vue 3 + Composition API
 - **Autenticación**: Firebase Auth
 - **Estilos**: CSS Variables (Dark/Light theme)
 
 ### DevOps
+
 - **Monorepo**: pnpm workspaces
 - **Containerización**: Docker + Docker Compose
 - **Linting**: ESLint + Prettier
@@ -46,30 +49,35 @@ bot-multi/
 ## 🔧 Instalación
 
 1. **Clonar repositorio**
+
 ```bash
 git clone <repository-url>
 cd bot-multi
 ```
 
-2. **Instalar dependencias**
+1. **Instalar dependencias**
+
 ```bash
 pnpm install
 ```
 
-3. **Configurar variables de entorno**
+1. **Configurar variables de entorno**
 
 Crear archivos `.env` en:
+
 - `apps/api/.env`
 - `apps/web/.env`
 
 Ver secciones de configuración en READMEs individuales.
 
-4. **Iniciar base de datos**
+1. **Iniciar base de datos**
+
 ```bash
 pnpm db:up
 ```
 
-5. **Ejecutar migraciones**
+1. **Ejecutar migraciones**
+
 ```bash
 cd apps/api
 pnpm prisma migrate dev
@@ -95,17 +103,29 @@ pnpm db:down    # Detener PostgreSQL
 ## 📁 Estructura del Proyecto
 
 ### `/apps/api`
+
 Backend con arquitectura modular:
+
 - `src/modules/ai` - Servicios de IA y gestión de identidad
 - `src/modules/users` - Gestión de usuarios
 - `src/modules/integrations` - Integraciones (Telegram, Notion)
+- `src/modules/notes` - CRUD de notas con etiquetas
+- `src/modules/tasks` - Gestión de tareas con programación
 - `src/common` - Guards, interceptors, filters
 
 ### `/apps/web`
+
 Frontend con páginas:
-- `/` - Chat principal
+
+- `/` - Dashboard principal
+- `/chat` - Chat con asistente de IA
+- `/notes` - Gestión de notas
+- `/task` - Gestión de tareas
 - `/identity` - Configuración de identidad del bot
 - `/integrations` - Gestión de integraciones
+- `/calendar` - Calendario (en desarrollo)
+- `/expenses` - Gastos (en desarrollo)
+- `/insights` - Análisis con IA (en desarrollo)
 
 ## 🔐 Seguridad
 
@@ -124,6 +144,7 @@ Frontend con páginas:
 ## 📚 Documentación
 
 Ver READMEs específicos:
+
 - [API Documentation](./apps/api/README.md)
 - [Web Documentation](./apps/web/README.md)
 

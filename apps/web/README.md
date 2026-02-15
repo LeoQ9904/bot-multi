@@ -13,11 +13,13 @@ Aplicación web moderna con Nuxt 3 para interactuar con el asistente de IA Aethe
 
 ## 📂 Estructura
 
-```
+```text
 app/
 ├── components/
 │   ├── NavComponent.vue      # Navegación principal
-│   └── LoadingOverlay.vue    # Loading reutilizable
+│   ├── LoadingOverlay.vue    # Loading reutilizable
+│   ├── notes/                # Componentes de notas
+│   └── tasks/                # Componentes de tareas
 ├── composables/
 │   ├── useAuth.ts            # Firebase auth
 │   └── useLoading.ts         # Estado de loading
@@ -26,9 +28,15 @@ app/
 ├── interfaces/
 │   └── index.ts              # TypeScript interfaces
 ├── pages/
-│   ├── index.vue             # Chat principal
+│   ├── index.vue             # Dashboard principal
+│   ├── chat.vue              # Chat con IA
+│   ├── notes.vue             # Gestión de notas
+│   ├── task.vue              # Gestión de tareas
 │   ├── identity.vue          # Configuración de identidad
-│   └── integrations.vue      # Gestión de integraciones
+│   ├── integrations.vue      # Gestión de integraciones
+│   ├── calendar.vue          # Calendario (en desarrollo)
+│   ├── expenses.vue          # Gastos (en desarrollo)
+│   └── insights.vue          # Insights (en desarrollo)
 ├── plugins/
 │   └── firebase.client.ts    # Inicialización Firebase
 ├── services/
@@ -36,7 +44,12 @@ app/
 │   ├── ia.service.ts         # Servicios de IA
 │   ├── user.service.ts       # Servicios de usuario
 │   ├── integration.service.ts # Servicios de integración
+│   ├── note.service.ts       # Servicios de notas
+│   ├── task.service.ts       # Servicios de tareas
 │   └── auth.service.ts       # Servicios de auth
+├── stores/
+│   ├── note.store.ts         # Estado de notas
+│   └── task.store.ts         # Estado de tareas
 └── app.vue                   # Layout principal
 ```
 
@@ -93,51 +106,95 @@ pnpm preview
 ## 🎨 Características
 
 ### Temas (Dark/Light)
+
 - Sistema de temas con CSS Variables
 - Persistencia en localStorage
 - Transiciones suaves
 
 ### Autenticación
+
 - Login con Google (Firebase)
 - Sincronización automática con backend
 - Guards de rutas
 
 ### Loading States
+
 - Componente reutilizable `LoadingOverlay`
 - Tiempo mínimo de 800ms
 - Adaptado a tema actual
 
 ### Servicios HTTP
+
 - Cliente centralizado con interceptors
 - Manejo automático de errores
 - Formato estándar de respuestas `ApiResponse<T>`
 
 ## 📄 Páginas
 
-### `/` - Chat
+### `/` - Dashboard
+
+- Página principal de bienvenida
+- Acceso rápido a funcionalidades
+
+### `/chat` - Chat
+
 - Interfaz de chat con IA
 - Historial de mensajes
 - Indicador de escritura
 - Scroll automático
 
+### `/notes` - Notas
+
+- CRUD completo de notas
+- Filtros por búsqueda y etiquetas
+- Modales de detalle y edición
+- Integración con chat de IA
+
+### `/task` - Tareas
+
+- Gestión completa de tareas
+- Secciones por fecha (Hoy, Mañana, Esta Semana, Próximamente)
+- Filtros avanzados (proyectos, categorías, fechas, etiquetas)
+- Estados de tarea (pendiente, en progreso, completada, cancelada)
+- Integración con chat de IA
+
 ### `/identity` - Identidad
+
 - Configurar nombre del bot
 - Mensaje de saludo
 - Personalidad e instrucciones
 
 ### `/integrations` - Integraciones
+
 - Conectar Telegram bot
 - Configurar Notion
 - Estado de conexiones
 
+### `/calendar` - Calendario (En Desarrollo)
+
+- Integración con Google Calendar
+- Vista de eventos
+
+### `/expenses` - Gastos (En Desarrollo)
+
+- Seguimiento de gastos
+- Categorización
+
+### `/insights` - Insights (En Desarrollo)
+
+- Análisis con IA de datos del usuario
+- Visualizaciones y recomendaciones
+
 ## 🎯 Composables
 
 ### `useFirebaseAuth()`
+
 ```typescript
 const { user, loading, loginWithGoogle, logout, syncProfile } = useFirebaseAuth();
 ```
 
 ### `useLoading()`
+
 ```typescript
 const { show, hide } = useLoading();
 show('Cargando', 'Mensaje opcional');
@@ -155,6 +212,7 @@ hide();
 ## 🎨 Estilos
 
 ### Variables CSS
+
 ```css
 :root {
   --bg-primary: #0a0e1a;
