@@ -12,6 +12,7 @@ export const API_BASE_URL = process.env.NUXT_PUBLIC_API_BASE_URL || 'http://127.
 export const IA_ENDPOINTS = {
     CHAT: '/ai/chat',
     IDENTITY: '/ai/identity',
+    INTERESTS: '/ai/interests',
 } as const;
 
 /**

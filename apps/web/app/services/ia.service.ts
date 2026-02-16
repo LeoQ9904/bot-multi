@@ -1,6 +1,6 @@
 import { ApiService } from './api.service';
 import { IA_ENDPOINTS } from '../constants/api-endpoints';
-import type { ChatResponse, BotIdentity, IdentitySaveResponse } from '../interfaces';
+import type { ChatResponse, BotIdentity, IdentitySaveResponse, Interests, InterestsResponse } from '../interfaces';
 
 /**
  * IA Service
@@ -21,6 +21,10 @@ export class IaService {
     static async updateIdentity(data: BotIdentity, token: string) {
         return ApiService.post<IdentitySaveResponse>(IA_ENDPOINTS.IDENTITY, data, { headers: { Authorization: `Bearer ${token}` } });
     }
+
+    static async getInterests(token: string) {
+        return ApiService.get<InterestsResponse>(IA_ENDPOINTS.INTERESTS, { headers: { Authorization: `Bearer ${token}` } });
+    }
 }
 
 export const useIaService = () => {
@@ -28,5 +32,6 @@ export const useIaService = () => {
         chat: IaService.chat,
         getIdentity: IaService.getIdentity,
         updateIdentity: IaService.updateIdentity,
+        getInterests: IaService.getInterests,
     };
 };

@@ -2,61 +2,109 @@
     <section class="dashboard-context">
         <div class="section-header">
             <h3 class="section-title-dashboard">Tu Contexto</h3>
-            <div class="weather-widgets">
-                <div class="widget widget-sun">
-                    <span class="material-symbols-outlined">light_mode</span>
-                    <span>22°C</span>
-                </div>
-                <div class="widget widget-fire">
-                    <span class="material-symbols-outlined">local_fire_department</span>
-                    <span>5 d</span>
-                </div>
-            </div>
         </div>
 
         <!-- Mobile: Carousel con snap -->
-        <div class="context-carousel" ref="carouselRef" @scroll="onScroll">
-            <div v-for="(item, index) in contextItems" :key="index" class="context-card"
-                :class="[item.type, item.colorClass, { clickable: !!item.link }]"
-                @click="item.link ? openLink(item.link) : null" @mouseenter="hoveredIndex = index"
-                @mouseleave="hoveredIndex = null">
-                <!-- Glow de fondo -->
-                <div class="card-glow"></div>
+        <template v-if="!loading">
+            <div class="context-carousel" ref="carouselRef" @scroll="onScroll">
+                <div v-for="(item, index) in contextItems" :key="index" class="context-card"
+                    :class="[item.type, item.colorClass, { clickable: !!item.link }]"
+                    @click="item.link ? openLink(item.link) : null" @mouseenter="hoveredIndex = index"
+                    @mouseleave="hoveredIndex = null">
+                    <!-- Glow de fondo -->
+                    <div class="card-glow"></div>
+
+                    <div class="card-header">
+                        <div class="icon-label">
+                            <span class="material-symbols-outlined">{{ item.icon }}</span>
+                        </div>
+                        <span class="card-tag">{{ item.tag }}</span>
+                        <span v-if="item.link" class="card-link-icon material-symbols-outlined">open_in_new</span>
+                    </div>
+
+                    <div class="card-body">
+                        <h4 class="card-title">{{ item.title }}</h4>
+                        <p class="card-desc">{{ item.description }}</p>
+                    </div>
+
+                    <div class="card-footer" v-if="item.footer">
+                        <span class="footer-dot"></span>
+                        <span class="footer-text">{{ item.footer }}</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Dots móvil -->
+            <div class="carousel-dots">
+                <span v-for="(item, index) in contextItems" :key="index" class="dot"
+                    :class="{ active: activeDot === index }" @click="scrollToCard(index)"></span>
+            </div>
+        </template>
+
+        <div v-else class="context-carousel">
+            <div v-for="index in 8" :key="`skeleton-${index}`" class="context-card skeleton-card">
+                <div class="card-glow skeleton-glow"></div>
 
                 <div class="card-header">
-                    <div class="icon-label">
-                        <span class="material-symbols-outlined">{{ item.icon }}</span>
+                    <div class="icon-label skeleton-icon">
+                        <div class="skeleton-shimmer"></div>
                     </div>
-                    <span class="card-tag">{{ item.tag }}</span>
-                    <span v-if="item.link" class="card-link-icon material-symbols-outlined">open_in_new</span>
+                    <span class="card-tag skeleton-tag">
+                        <div class="skeleton-shimmer"></div>
+                    </span>
                 </div>
 
                 <div class="card-body">
-                    <h4 class="card-title">{{ item.title }}</h4>
-                    <p class="card-desc">{{ item.description }}</p>
+                    <div class="skeleton-title">
+                        <div class="skeleton-shimmer"></div>
+                    </div>
+                    <div class="skeleton-desc">
+                        <div class="skeleton-shimmer"></div>
+                    </div>
+                    <div class="skeleton-desc short">
+                        <div class="skeleton-shimmer"></div>
+                    </div>
                 </div>
 
-                <div class="card-footer" v-if="item.footer">
-                    <span class="footer-dot"></span>
-                    <span class="footer-text">{{ item.footer }}</span>
+                <div class="card-footer">
+                    <span class="footer-dot skeleton-dot"></span>
+                    <span class="skeleton-footer-text">
+                        <div class="skeleton-shimmer"></div>
+                    </span>
                 </div>
             </div>
         </div>
 
-        <!-- Dots móvil -->
-        <div class="carousel-dots">
-            <span v-for="(item, index) in contextItems" :key="index" class="dot"
-                :class="{ active: activeDot === index }" @click="scrollToCard(index)"></span>
-        </div>
     </section>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import type { Interests } from '~/interfaces';
+import { useIaService } from '~/services/ia.service';
 
 const carouselRef = ref<HTMLElement | null>(null)
 const hoveredIndex = ref<number | null>(null)
 const activeDot = ref(0)
+const contextItems = ref<Interests[]>([])
+const loading = ref(false)
+
+const fetchAllSettings = async () => {
+    const { user } = useFirebaseAuth();
+    if (!user.value) return;
+
+    loading.value = true;
+    const token = await user.value.getIdToken();
+
+    // Fetch Integrations
+    try {
+        const response = await useIaService().getInterests(token);
+        contextItems.value = response.data.interests
+    } catch (e) {
+        console.error('Failed to fetch integrations', e);
+    } finally {
+        loading.value = false;
+    }
+};
 
 const openLink = (url: string) => {
     window.open(url, '_blank')
@@ -65,53 +113,19 @@ const openLink = (url: string) => {
 const onScroll = () => {
     if (!carouselRef.value) return
     const el = carouselRef.value
-    const cardWidth = el.scrollWidth / contextItems.length
+    const cardWidth = el.scrollWidth / contextItems.value.length
     activeDot.value = Math.round(el.scrollLeft / cardWidth)
 }
 
 const scrollToCard = (index: number) => {
     if (!carouselRef.value) return
-    const cardWidth = carouselRef.value.scrollWidth / contextItems.length
+    const cardWidth = carouselRef.value.scrollWidth / contextItems.value.length
     carouselRef.value.scrollTo({ left: cardWidth * index, behavior: 'smooth' })
 }
 
-const contextItems = [
-    {
-        type: 'trend',
-        tag: 'Tech Trend',
-        title: 'Astro 5.0 lanzado',
-        description: 'Mejoras en Content Layer y rendimiento optimizado para sitios estáticos más rápidos.',
-        icon: 'trending_up',
-        colorClass: 'color-blue',
-        link: 'https://astro.build/blog/astro-4/',
-        footer: 'Hace 2 horas'
-    },
-    {
-        type: 'history',
-        tag: 'Un día como hoy',
-        title: 'Nace Thomas Edison',
-        description: 'En 1847 nacía el prolífico inventor que patentó la bombilla incandescente y el fonógrafo.',
-        icon: 'history',
-        colorClass: 'color-amber',
-        footer: '1847'
-    },
-    {
-        type: 'tip',
-        tag: 'Tip del Día',
-        title: 'Regla de los 2 minutos',
-        description: 'Si una tarea tarda menos de 2 minutos en hacerse, hazla ya. No la pospongas.',
-        icon: 'lightbulb',
-        colorClass: 'color-purple'
-    },
-    {
-        type: 'quote',
-        tag: 'Inspiración',
-        title: '"Hazlo o no lo hagas"',
-        description: 'No existe el "intentar". — Maestro Yoda',
-        icon: 'format_quote',
-        colorClass: 'color-emerald'
-    }
-]
+onMounted(() => {
+    fetchAllSettings();
+});
 </script>
 
 <style scoped>
@@ -460,5 +474,146 @@ const contextItems = [
     .context-carousel {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* ─────────────────────────────────────────
+   SKELETON LOADING - DUAL THEME
+───────────────────────────────────────── */
+.skeleton-card {
+    pointer-events: none;
+    border-color: var(--glass-border) !important;
+    background: var(--bg-secondary) !important;
+}
+
+.skeleton-card:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.skeleton-glow {
+    background: radial-gradient(circle at 20% 20%,
+            var(--glass-bg) 0%,
+            transparent 70%);
+    opacity: 1;
+}
+
+.skeleton-icon {
+    background: var(--glass-bg) !important;
+    overflow: hidden;
+    position: relative;
+}
+
+.skeleton-tag {
+    height: 12px;
+    width: 80px;
+    border-radius: 4px;
+    background: var(--glass-bg);
+    overflow: hidden;
+    position: relative;
+}
+
+.skeleton-title {
+    height: 18px;
+    width: 70%;
+    border-radius: 4px;
+    background: var(--glass-bg);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.skeleton-desc {
+    height: 14px;
+    width: 100%;
+    border-radius: 4px;
+    background: var(--glass-bg);
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.skeleton-desc.short {
+    width: 85%;
+    margin-bottom: 0;
+}
+
+.skeleton-dot {
+    background: var(--glass-border);
+}
+
+.skeleton-footer-text {
+    height: 10px;
+    width: 60px;
+    border-radius: 4px;
+    background: var(--glass-bg);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Animación shimmer - Adaptada para ambos temas */
+.skeleton-shimmer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            var(--shimmer-color, rgba(255, 255, 255, 0.1)) 50%,
+            transparent 100%);
+    animation: shimmer 2s infinite;
+}
+
+/* Dark theme shimmer */
+:root .skeleton-shimmer {
+    --shimmer-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Light theme shimmer */
+.light-theme .skeleton-shimmer {
+    --shimmer-color: rgba(0, 0, 0, 0.06);
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* Pulso suave en el skeleton card */
+.skeleton-card {
+    animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+}
+
+/* Ajuste adicional para tema claro - bordes más visibles */
+.light-theme .skeleton-card {
+    box-shadow: 0 1px 3px var(--shadow);
+}
+
+.light-theme .skeleton-title,
+.light-theme .skeleton-desc,
+.light-theme .skeleton-tag,
+.light-theme .skeleton-footer-text {
+    background: var(--bg-tertiary);
+}
+
+.light-theme .skeleton-icon {
+    background: var(--bg-tertiary) !important;
 }
 </style>

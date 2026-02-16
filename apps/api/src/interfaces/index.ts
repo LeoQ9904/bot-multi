@@ -85,3 +85,20 @@ export interface Message {
     content: string;
     createdAt: string;
 }
+
+export interface Interests {
+    type: string;
+    tag: string;
+    title: string;
+    description: string;
+    icon: string;
+    colorClass: string;
+    link?: string;
+    footer?: string;
+    createdAt?: string | null;
+}
+
+export interface InterestsResponse {
+    interests: Interests[];
+}
+
