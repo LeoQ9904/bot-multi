@@ -13,6 +13,6 @@ export interface Task {
     tagColor: string;
     scheduledAt: number;
     createdAt: number;
-    startedAt?: number | null;
-    completedAt?: number | null;
+    startedAt?: string | null;
+    completedAt?: string | null;
 }

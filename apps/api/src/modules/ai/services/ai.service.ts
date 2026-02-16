@@ -194,10 +194,10 @@ export class AIService {
         description?: string;
         category: string;
         status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
-        priority: 1 | 2 | 3;
+        priority: 1 | 2 | 3; // 1 = Low, 2 = Medium, 3 = High
         duration: string; // e.g., "30 min", "1h"
         tagColor: string; // "red", "amber", "emerald", "blue", "purple"
-        scheduledAt: number; // Unix timestamp in milliseconds
+        scheduledAt: string; // ISO 8601 date string (e.g., "2026-02-16T15:30:00.000Z")
       }
       \`\`\`
 
@@ -206,7 +206,7 @@ export class AIService {
 
       ### Commands (CRITICAL):
       When you need to create or modify a task based on the user's request, you MUST include one of these commands at the end of your response:
-      - [TASK_OP:CREATE:{"title": "...", "category": "...", "scheduledAt": timestamp, ...}]
+      - [TASK_OP:CREATE:{"title": "...", "category": "...", "scheduledAt": "2026-02-16T15:30:00.000Z", ...}]
       - [TASK_OP:UPDATE:{"id": "...", "status": "completed", ...}]
       - [TASK_OP:DELETE:{"id": "..."}]
 
@@ -219,10 +219,15 @@ export class AIService {
       - Be concise but informative.
 
       ### Guidelines for Task Operations:
-      1. Use the current date (${dateStr}) to calculate timestamps for "tomorrow", etc. Ensure the year is 2026.
-      2. Be precise with categories and projects if the user mentions them.
-      3. **MANDATORY**: For [TASK_OP:UPDATE] and [TASK_OP:DELETE], you MUST provide the exact "id" from the JSON list provided above. If you don't provide the ID, the operation will fail.
-      4. **ONLY** include fields that exist in the Task interface. Do **NOT** include "dateStr" or other extra fields in the [TASK_OP] command.
+      1. Use the current date (${dateStr}) to calculate timestamps for "tomorrow", etc.
+      2. **IMPORTANT**: Generate scheduledAt in ISO 8601 format with timezone UTC-5 (America/Bogota).
+      Example: "${new Date().toISOString()}"
+      3. Be precise with categories and projects if the user mentions them.
+      4. **MANDATORY**: For [TASK_OP:UPDATE] and [TASK_OP:DELETE], you MUST provide the exact "id" from the JSON list provided above. If you don't provide the ID, the operation will fail.
+      5. **ONLY** include fields that exist in the Task interface. Do **NOT** include "dateStr" or other extra fields in the [TASK_OP] command.
+      6. **IMPORTANT**: Use la información de las tareas para dar respuesta a las solicitudes del usuario, por ejemplo si el usuario pregunta "cuantas tareas tengo pendientes?" debes que filtrar las tareas por la que no tenga status "completed" o "cancelled" y luego contar el numero de tareas restantes, igualmente para retornar el listado de tares iniciadas, o cnatidad de tareas completadas.
+      7. **IMPORTANT**: Si el usuario te pide crear una tarea, debes que usar la fecha actual (${dateStr}) para calcular la fecha de la tarea, por ejemplo si el usuario pide "crear una tarea para mañana", debes que usar la fecha actual y sumarle 1 dia para obtener la fecha de la tarea.
+      8. **IMPORTANT**: Si el usuario pide crear una tareas debes que evitar crear tareas sobre el mismo horario que las tareas existentes, si ya existe una tarea sobre el mismo horario, recordar al usuario la tarea ya existente con el fin de que confirme la creación sobre la misma hora. 
 
       ## Note Management System:
       You can also create, update, or delete notes for the user.

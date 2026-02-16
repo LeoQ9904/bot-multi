@@ -5,6 +5,6 @@ export class CreateTaskDto {
     category: string;
     duration?: string;
     tagColor?: string;
-    scheduledAt: number;
+    scheduledAt: string;
     priority?: number;
 }

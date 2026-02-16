@@ -79,6 +79,7 @@ import BasePopover from '../ui/BasePopover.vue';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import TagFilters from '../ui/TagFilters.vue';
+import { addDays, endOfDay, fromUnixTime, startOfDay, toDate } from 'date-fns';
 
 interface FilterState {
     type: string;
@@ -86,7 +87,7 @@ interface FilterState {
     categories: string[];
     sortOrder: 'asc' | 'desc';
     sortBy: 'createdAt' | 'scheduledAt';
-    dateRange: { start: number | null, end: number | null };
+    dateRange: { start: string | null, end: string | null };
     tags: string[];
 }
 
@@ -166,19 +167,35 @@ const toggleTag = (tag: string) => {
 };
 
 const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    let start = now.getTime();
-    let end = now.getTime() + 86400000 - 1; // End of day
+    const currentDate = toDate(new Date());
+    const startDay = startOfDay(currentDate);
+    const endDay = endOfDay(currentDate);
+    let startDate: Date;
+    let endDate: Date;
 
-    if (option === 'tomorrow') {
-        start += 86400000;
-        end += 86400000;
-    } else if (option === 'week') {
-        end = start + (86400000 * 7) - 1;
+    switch (option) {
+        case 'today':
+            startDate = startDay;
+            endDate = endDay;
+            break;
+        case 'tomorrow':
+            startDate = addDays(startDay, 1);
+            endDate = addDays(endDay, 1);
+            break;
+        case 'week':
+            startDate = startDay;
+            endDate = addDays(endDay, 7);
+            break;
     }
 
-    updateFilter({ dateRange: { start, end }, type: 'date' });
+    internalDateRange.value = [startDate, endDate];
+    updateFilter({
+        dateRange: {
+            start: startDate.toISOString(),
+            end: endDate.toISOString()
+        },
+        type: 'date'
+    });
 };
 
 const handleManualDate = (value: any) => {
@@ -190,7 +207,7 @@ const handleManualDate = (value: any) => {
         end.setHours(23, 59, 59, 999);
 
         updateFilter({
-            dateRange: { start: start.getTime(), end: end.getTime() },
+            dateRange: { start: start.toISOString(), end: end.toISOString() },
             type: 'date'
         });
     } else {

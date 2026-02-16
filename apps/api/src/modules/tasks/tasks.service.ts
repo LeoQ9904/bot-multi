@@ -16,12 +16,12 @@ export class TasksService {
             data: {
                 ...createTaskDto,
                 userId,
-                scheduledAt: BigInt(createTaskDto.scheduledAt),
+                scheduledAt: new Date(createTaskDto.scheduledAt),
             },
         });
 
         await this.syncUserTasks(userId);
-        return this.serializeTask(task);
+        return task;
     }
 
     async findAll(userId: string) {
@@ -29,21 +29,18 @@ export class TasksService {
             where: { userId },
             orderBy: { scheduledAt: 'asc' },
         });
-        return tasks.map((t) => this.serializeTask(t));
+        return tasks;
     }
 
     async findOne(userId: string, id: string) {
         const task = await this.prisma.task.findFirst({
             where: { id, userId },
         });
-        return task ? this.serializeTask(task) : null;
+        return task;
     }
 
     async update(userId: string, id: string, updateTaskDto: UpdateTaskDto) {
         const data: any = { ...updateTaskDto };
-        if (updateTaskDto.scheduledAt) data.scheduledAt = BigInt(updateTaskDto.scheduledAt);
-        if (updateTaskDto.startedAt) data.startedAt = BigInt(updateTaskDto.startedAt);
-        if (updateTaskDto.completedAt) data.completedAt = BigInt(updateTaskDto.completedAt);
 
         const task = await this.prisma.task.update({
             where: { id, userId },
@@ -51,7 +48,7 @@ export class TasksService {
         });
 
         await this.syncUserTasks(userId);
-        return this.serializeTask(task);
+        return task;
     }
 
     async remove(userId: string, id: string) {
@@ -78,14 +75,5 @@ export class TasksService {
             // We don't throw here to avoid failing the DB operation, 
             // but in a real app we might want more robust error handling
         }
-    }
-
-    private serializeTask(task: any) {
-        return {
-            ...task,
-            scheduledAt: Number(task.scheduledAt),
-            startedAt: task.startedAt ? Number(task.startedAt) : null,
-            completedAt: task.completedAt ? Number(task.completedAt) : null,
-        };
     }
 }

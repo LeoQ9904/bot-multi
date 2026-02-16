@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import type { Task } from '../types/task.types';
 import { useTaskService } from '../services/task.service';
 import { useFirebaseAuth } from '~/composables/useAuth';
+import { format, parse, parseISO } from 'date-fns';
 
 export const DEFAULT_TAG_COLORS = ['blue', 'purple', 'emerald', 'amber', 'red'];
 
@@ -78,7 +79,7 @@ export const useTaskStore = defineStore('tasks', {
             this.activeTaskId = id;
             await this.updateTask(id, {
                 status: 'in-progress',
-                startedAt: Date.now()
+                startedAt: Date.now().toString()
             });
         },
 
@@ -98,7 +99,7 @@ export const useTaskStore = defineStore('tasks', {
             }
             await this.updateTask(id, {
                 status: 'completed',
-                completedAt: Date.now()
+                completedAt: new Date().toISOString()
             });
         },
 

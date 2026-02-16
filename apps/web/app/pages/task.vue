@@ -95,7 +95,6 @@ const filteredGroupedTasks = computed(() => {
 
   // Filter by Tags
   if (activeFilter.value.tags.length > 0) {
-    console.log('Listado de tags a filtrar: ', activeFilter.value.tags);
     filtered = filtered.filter(t => activeFilter.value.tags.includes(t.tagColor));
   }
 
@@ -162,9 +161,6 @@ const handleEditClick = (task: any) => {
 };
 
 const handleSaveTask = async (formData: any) => {
-  if (formData.scheduledAt && typeof formData.scheduledAt === 'object') {
-    formData.scheduledAt = formData.scheduledAt.getTime();
-  }
   if (editingTask.value) {
     await taskStore.updateTask(editingTask.value.id, formData);
   } else {

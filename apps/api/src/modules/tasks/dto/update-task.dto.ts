@@ -7,7 +7,7 @@ export class UpdateTaskDto {
     priority?: number;
     duration?: string;
     tagColor?: string;
-    scheduledAt?: number;
-    startedAt?: number;
-    completedAt?: number;
+    scheduledAt?: string;
+    startedAt?: string;
+    completedAt?: string;
 }
