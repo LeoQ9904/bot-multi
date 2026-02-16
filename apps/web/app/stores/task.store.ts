@@ -79,7 +79,7 @@ export const useTaskStore = defineStore('tasks', {
             this.activeTaskId = id;
             await this.updateTask(id, {
                 status: 'in-progress',
-                startedAt: Date.now().toString()
+                startedAt: new Date().toISOString()
             });
         },
 

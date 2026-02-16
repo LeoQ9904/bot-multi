@@ -30,7 +30,7 @@
         <!-- Right Column: Tasks -->
         <div class="tasks-column">
           <DashboardRecentTasks :tasks="todaysTasks" @start="handleStartTask" @stop="handleStopTask"
-            @create="handleCreateTask" @preview="handlePreviewTask" />
+            @create="handleCreateTask" @preview="handlePreviewTask" @complete="handleCompleteTask" />
         </div>
       </div>
 
@@ -132,6 +132,7 @@ const handleCreateTask = () => navigateTo('/task');
 const handlePreviewTask = (task: any) => navigateTo('/task'); // Ideally open modal? For now Nav
 const handleCreateNote = () => navigateTo('/notes'); // Ideally open modal
 const handlePreviewNote = (note: any) => navigateTo('/notes'); // Ideally open modal
+const handleCompleteTask = (task: any) => taskStore.completeTask(task.id);
 
 </script>
 
@@ -219,7 +220,7 @@ const handlePreviewNote = (note: any) => navigateTo('/notes'); // Ideally open m
 
 @media (min-width: 1024px) {
   .dashboard-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 2fr;
     /* 1/3 for context, 2/3 for tasks */
   }
 }

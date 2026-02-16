@@ -246,11 +246,9 @@ onMounted(() => {
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    /* Padding interno sin desbordar el padre */
-    /* padding: 0.5rem 0.25rem 1rem 0.25rem; */
-    /* Usa width: 100% para no salirse */
     max-width: 86vw;
     box-sizing: border-box;
+    padding: 0.25rem 1rem;
 }
 
 .context-carousel::-webkit-scrollbar {
@@ -453,7 +451,7 @@ onMounted(() => {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         overflow-x: visible;
-        padding: 0.25rem;
+        padding: 0.25rem 1rem;
         gap: 0.75rem;
         width: 100%;
     }
