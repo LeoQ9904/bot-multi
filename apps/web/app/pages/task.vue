@@ -46,6 +46,7 @@ import TaskFormModal from '~/components/tasks/TaskFormModal.vue';
 import TaskDetailModal from '~/components/tasks/TaskDetailModal.vue';
 import HeaderPage from '~/components/HeaderPage.vue';
 import EmptyPage from '~/components/EmptyPage.vue';
+import { isBefore, isPast, isSameWeek, isThisWeek, isToday, isTomorrow, isYesterday, lastDayOfISOWeek, subWeeks } from 'date-fns';
 
 const taskStore = useTaskStore();
 
@@ -56,7 +57,6 @@ onMounted(() => {
 // Modal State
 const isModalOpen = ref(false);
 const editingTask = ref<any>(null);
-
 const isPreviewOpen = ref(false);
 const previewingTask = ref<any>(null);
 
@@ -66,6 +66,7 @@ const activeFilter = ref({
   projects: [] as string[],
   categories: [] as string[],
   sortOrder: 'desc' as 'asc' | 'desc',
+  sortBy: 'scheduledAt' as 'createdAt' | 'scheduledAt',
   dateRange: { start: null as number | null, end: null as number | null },
   tags: [] as string[]
 });
@@ -94,13 +95,15 @@ const filteredGroupedTasks = computed(() => {
 
   // Filter by Tags
   if (activeFilter.value.tags.length > 0) {
+    console.log('Listado de tags a filtrar: ', activeFilter.value.tags);
     filtered = filtered.filter(t => activeFilter.value.tags.includes(t.tagColor));
   }
 
   // Apply Sorting
   filtered.sort((a, b) => {
     const factor = activeFilter.value.sortOrder === 'desc' ? -1 : 1;
-    return (a.createdAt - b.createdAt) * factor;
+    const sortField = activeFilter.value.sortBy;
+    return (a[sortField] - b[sortField]) * factor;
   });
 
   // Re-group for the sections
@@ -108,28 +111,28 @@ const filteredGroupedTasks = computed(() => {
     'Hoy': [],
     'Mañana': [],
     'Esta Semana': [],
-    'Próximamente': []
+    'Ayer': [],
+    'Próximamente': [],
+    'Semana pasada': [],
+    'Más antiguas': []
   };
 
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const todayTs = now.getTime();
-  const tomorrowTs = todayTs + 86400000;
-  const nextWeekTs = todayTs + (86400000 * 7);
+  const dateHoy = new Date();
 
   filtered.forEach(task => {
-    const taskDate = new Date(task.scheduledAt);
-    taskDate.setHours(0, 0, 0, 0);
-    const taskTs = taskDate.getTime();
-
-    if (taskTs === todayTs) {
+    const taskTs = task.scheduledAt;
+    if (isToday(taskTs)) {
       groups['Hoy']!.push(task);
-    } else if (taskTs === tomorrowTs) {
+    } else if (isYesterday(taskTs)) {
+      groups['Ayer']!.push(task);
+    } else if (isBefore(taskTs, dateHoy.getTime()) && isSameWeek(taskTs, subWeeks(dateHoy.getTime(), 1))) {
+      groups['Semana pasada']!.push(task);
+    } else if (isTomorrow(taskTs)) {
       groups['Mañana']!.push(task);
-    } else if (taskTs < nextWeekTs) {
+    } else if (isThisWeek(taskTs)) {
       groups['Esta Semana']!.push(task);
-    } else {
-      groups['Próximamente']!.push(task);
+    } else if (isPast(taskTs)) {
+      groups['Más antiguas']!.push(task);
     }
   });
 
@@ -159,6 +162,9 @@ const handleEditClick = (task: any) => {
 };
 
 const handleSaveTask = async (formData: any) => {
+  if (formData.scheduledAt && typeof formData.scheduledAt === 'object') {
+    formData.scheduledAt = formData.scheduledAt.getTime();
+  }
   if (editingTask.value) {
     await taskStore.updateTask(editingTask.value.id, formData);
   } else {

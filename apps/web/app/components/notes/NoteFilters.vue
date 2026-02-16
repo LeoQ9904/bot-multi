@@ -9,15 +9,8 @@
 
         <div class="filters-actions">
             <!-- Tag Filters -->
-            <div class="tag-filters">
-                <button v-for="color in tagColors" :key="color" class="tag-filter-btn"
-                    :class="{ active: selectedTag === color }"
-                    @click="$emit('update:selectedTag', selectedTag === color ? '' : color)"
-                    :title="`Filtrar por ${color}`">
-                    <span class="tag-dot"
-                        :style="color.startsWith('#') ? { backgroundColor: color } : { backgroundColor: `var(--accent-${color})` }"></span>
-                </button>
-            </div>
+            <TagFilters :tag-colors="tagColors" :selected-tag="selectedTag"
+                @update:selected-tag="$emit('update:selectedTag', $event)" />
 
             <div class="view-actions">
                 <!-- Any other actions for the filter bar -->
@@ -35,6 +28,8 @@ defineProps<{
 const emit = defineEmits(['update:search', 'update:selectedTag']);
 
 import { useNoteStore } from '../../stores/note.store';
+import TagFilters from '../ui/TagFilters.vue';
+
 const noteStore = useNoteStore();
 const tagColors = computed(() => noteStore.allTagColors);
 </script>
@@ -82,38 +77,7 @@ const tagColors = computed(() => noteStore.allTagColors);
     flex-wrap: wrap;
 }
 
-.tag-filters {
-    display: flex;
-    gap: 0.5rem;
-}
 
-.tag-filter-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    background: var(--bg-tertiary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tag-filter-btn:hover {
-    transform: scale(1.1);
-}
-
-.tag-filter-btn.active {
-    border-color: var(--text-primary);
-    background: var(--bg-secondary);
-}
-
-.tag-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-}
 
 .glass {
     background: var(--glass-bg);

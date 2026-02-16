@@ -1,90 +1,74 @@
 <template>
-    <div class="filter-bar">
-        <!-- Todas / Categorías Popover -->
-        <BasePopover position="bottom-left" size="large">
-            <template #trigger>
-                <button class="filter-chip" :class="{ active: modelValue.type === 'all' }">
-                    {{ selectedLabel }}
-                    <span class="material-symbols-outlined">expand_content</span>
-                </button>
-            </template>
-            <div class="filter-menu">
-                <div class="menu-section">
-                    <p class="section-label">Mostrar por:</p>
-                    <div class="toggle-group">
-                        <button class="toggle-item" :class="{ active: listType === 'projects' }"
-                            @click="listType = 'projects'">Proyectos</button>
-                        <button class="toggle-item" :class="{ active: listType === 'categories' }"
-                            @click="listType = 'categories'">Categorías</button>
-                    </div>
-                </div>
-                <div class="menu-list">
-                    <button class="menu-item" @click="resetAll">Todas las tareas</button>
-                    <button v-for="item in currentList" :key="item" class="menu-item"
-                        :class="{ active: isItemSelected(item) }" @click="toggleItem(item)">
-                        {{ item }}
-                        <span v-if="isItemSelected(item)" class="material-symbols-outlined">check</span>
+    <div>
+        <div class="filter-bar">
+            <!-- Todas / Categorías Popover -->
+            <BasePopover position="bottom-left" size="large">
+                <template #trigger>
+                    <button class="filter-chip" :class="{ active: modelValue.type === 'all' }">
+                        {{ selectedLabel }}
+                        <span class="material-symbols-outlined">expand_content</span>
                     </button>
+                </template>
+                <div class="filter-menu">
+                    <div class="menu-section">
+                        <p class="section-label">Mostrar por:</p>
+                        <div class="toggle-group">
+                            <button class="toggle-item" :class="{ active: listType === 'projects' }"
+                                @click="listType = 'projects'">Proyectos</button>
+                            <button class="toggle-item" :class="{ active: listType === 'categories' }"
+                                @click="listType = 'categories'">Categorías</button>
+                        </div>
+                    </div>
+                    <div class="menu-list">
+                        <button class="menu-item" @click="resetAll">Todas las tareas</button>
+                        <button v-for="item in currentList" :key="item" class="menu-item"
+                            :class="{ active: isItemSelected(item) }" @click="toggleItem(item)">
+                            {{ item }}
+                            <span v-if="isItemSelected(item)" class="material-symbols-outlined">check</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </BasePopover>
+            </BasePopover>
 
-        <!-- Fecha Popover -->
-        <BasePopover position="bottom-left" size="large">
-            <template #trigger>
-                <button class="filter-chip" :class="{ active: modelValue.type === 'date' }">
-                    Fecha
-                    <span class="material-symbols-outlined">expand_content</span>
-                </button>
-            </template>
-            <div class="filter-menu">
-                <div class="menu-section">
-                    <p class="section-label">Orden</p>
-                    <div class="toggle-group">
-                        <button class="toggle-item" :class="{ active: modelValue.sortOrder === 'desc' }"
-                            @click="updateFilter({ sortOrder: 'desc' })">Más recientes</button>
-                        <button class="toggle-item" :class="{ active: modelValue.sortOrder === 'asc' }"
-                            @click="updateFilter({ sortOrder: 'asc' })">Más antiguas</button>
-                    </div>
-                </div>
-                <div class="menu-section">
-                    <p class="section-label">Rango Personalizado</p>
-                    <div class="date-picker-container">
-                        <VueDatePicker v-model="internalDateRange" range :teleport="true" dark format="dd/MM/yyyy"
-                            auto-apply placeholder="Seleccionar rango" class="custom-datepicker"
-                            :enable-time-picker="false" @update:model-value="handleManualDate" />
-                    </div>
-                </div>
-                <div class="menu-section">
-                    <p class="section-label">Atajos</p>
-                    <div class="quick-options">
-                        <button class="quick-btn" @click="setDateQuick('today')">Hoy</button>
-                        <button class="quick-btn" @click="setDateQuick('tomorrow')">Mañana</button>
-                        <button class="quick-btn" @click="setDateQuick('week')">Próx. 7 días</button>
-                    </div>
-                </div>
-            </div>
-        </BasePopover>
-
-        <!-- Etiquetas Popover -->
-        <BasePopover position="bottom-left" size="medium">
-            <template #trigger>
-                <button class="filter-chip" :class="{ active: modelValue.tags.length > 0 }">
-                    Etiquetas
-                    <span class="material-symbols-outlined">expand_content</span>
-                </button>
-            </template>
-            <div class="filter-menu">
-                <p class="section-label">Filtrar por color</p>
-                <div class="tag-list">
-                    <button v-for="tag in store.allTags" :key="tag" class="tag-item"
-                        :class="[tag, { active: modelValue.tags.includes(tag) }]" @click="toggleTag(tag)">
-                        <span class="tag-dot" :class="tag"></span>
-                        {{ tagLabel(tag) }}
+            <!-- Fecha Popover -->
+            <BasePopover position="bottom-left" size="large">
+                <template #trigger>
+                    <button class="filter-chip" :class="{ active: modelValue.type === 'date' }">
+                        Fecha
+                        <span class="material-symbols-outlined">expand_content</span>
                     </button>
+                </template>
+                <div class="filter-menu">
+                    <div class="menu-section">
+                        <p class="section-label">Orden</p>
+                        <div class="toggle-group">
+                            <button class="toggle-item" :class="{ active: modelValue.sortOrder === 'desc' }"
+                                @click="updateFilter({ sortOrder: 'desc' })">Descendente</button>
+                            <button class="toggle-item" :class="{ active: modelValue.sortOrder === 'asc' }"
+                                @click="updateFilter({ sortOrder: 'asc' })">Ascendente</button>
+                        </div>
+                    </div>
+                    <div class="menu-section">
+                        <p class="section-label">Rango Personalizado</p>
+                        <div class="date-picker-container">
+                            <VueDatePicker v-model="internalDateRange" range :teleport="true" dark format="dd/MM/yyyy"
+                                auto-apply placeholder="Seleccionar rango" class="custom-datepicker"
+                                :enable-time-picker="false" @update:model-value="handleManualDate" />
+                        </div>
+                    </div>
+                    <div class="menu-section">
+                        <p class="section-label">Atajos</p>
+                        <div class="quick-options">
+                            <button class="quick-btn" @click="setDateQuick('today')">Hoy</button>
+                            <button class="quick-btn" @click="setDateQuick('tomorrow')">Mañana</button>
+                            <button class="quick-btn" @click="setDateQuick('week')">Próx. 7 días</button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </BasePopover>
+            </BasePopover>
+
+        </div>
+        <TagFilters :tag-colors="tagColors" @update:selected-tag="toggleTag($event)" :selected-tag="selectedTag" />
     </div>
 </template>
 
@@ -94,12 +78,14 @@ import { useTaskStore } from '~/stores/task.store';
 import BasePopover from '../ui/BasePopover.vue';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
+import TagFilters from '../ui/TagFilters.vue';
 
 interface FilterState {
     type: string;
     projects: string[];
     categories: string[];
     sortOrder: 'asc' | 'desc';
+    sortBy: 'createdAt' | 'scheduledAt';
     dateRange: { start: number | null, end: number | null };
     tags: string[];
 }
@@ -114,6 +100,10 @@ const store = useTaskStore();
 const listType = ref<'projects' | 'categories'>('projects');
 
 const internalDateRange = ref<[Date, Date] | null>(null);
+const tagColors = computed(() => store.allTagColors);
+
+const selectedTag = ref<string>('');
+
 
 // Sync internal range with props
 watch(() => props.modelValue.dateRange, (newRange) => {
@@ -166,20 +156,13 @@ const resetAll = () => {
 };
 
 const toggleTag = (tag: string) => {
-    const tags = [...props.modelValue.tags];
+    let tags = [...tagColors.value];
     const index = tags.indexOf(tag);
-    if (index === -1) tags.push(tag);
-    else tags.splice(index, 1);
+    if (index > -1) {
+        tags = [tag]
+    }
     updateFilter({ tags });
-};
-
-const tagLabel = (tag: string) => {
-    const map: Record<string, string> = {
-        'red': 'Alta prioridad',
-        'amber': 'Media prioridad',
-        'emerald': 'Normal'
-    };
-    return map[tag] || tag;
+    selectedTag.value = tag;
 };
 
 const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {

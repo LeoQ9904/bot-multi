@@ -1,7 +1,8 @@
 <template>
     <div class="task-card" :class="[`status-${task.status}`]">
         <div class="task-info">
-            <div class="status-indicator" :class="task.tagColor"></div>
+            <span class="tag-dot"
+                :style="task.tagColor.startsWith('#') ? { backgroundColor: task.tagColor } : { backgroundColor: `var(--accent-${task.tagColor})` }"></span>
             <div class="task-text">
                 <div class="title-row">
                     <h3 class="task-title">{{ task.title }}</h3>
@@ -487,5 +488,12 @@ defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
         padding: 0 0.75rem;
         font-size: 0.8rem;
     }
+}
+
+.tag-dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 </style>

@@ -3,6 +3,8 @@ import type { Task } from '../types/task.types';
 import { useTaskService } from '../services/task.service';
 import { useFirebaseAuth } from '~/composables/useAuth';
 
+export const DEFAULT_TAG_COLORS = ['blue', 'purple', 'emerald', 'amber', 'red'];
+
 export const useTaskStore = defineStore('tasks', {
     state: () => ({
         tasks: [] as Task[],
@@ -115,6 +117,16 @@ export const useTaskStore = defineStore('tasks', {
     },
 
     getters: {
+        allTagColors: (state) => {
+            const customColors = new Set<string>();
+            state.tasks.forEach(task => {
+                const color = task.tagColor;
+                if (!DEFAULT_TAG_COLORS.includes(color) && color.startsWith('#')) {
+                    customColors.add(color);
+                }
+            });
+            return [...DEFAULT_TAG_COLORS, ...Array.from(customColors)];
+        },
         groupedTasks: (state) => {
             const groups: Record<string, Task[]> = {
                 'Hoy': [],

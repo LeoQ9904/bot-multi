@@ -21,23 +21,8 @@
                         class="form-textarea" rows="6"></textarea>
                 </div>
 
-                <div class="form-group">
-                    <label>Color de etiqueta</label>
-                    <div class="tag-selector">
-                        <button v-for="color in allColors" :key="color" type="button" class="tag-btn"
-                            :class="{ active: form.tagColor === color }" @click="selectColor(color)">
-                            <span class="tag-dot" :style="getColorStyle(color)"></span>
-                        </button>
-
-                        <div class="custom-color-wrapper">
-                            <input type="color" id="customColor" :value="customColorValue" @input="handleCustomColor"
-                                class="color-input">
-                            <label for="customColor" class="add-color-btn" title="Color personalizado">
-                                <span class="material-symbols-outlined">add</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
+                <ColorTagSelector v-model="form.tagColor" :available-colors="noteStore.allTagColors"
+                    label="Color de etiqueta" />
 
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" @click="close">Cancelar</button>
@@ -53,7 +38,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import type { Note } from '../../types/note.types';
-import { useNoteStore, DEFAULT_TAG_COLORS } from '../../stores/note.store';
+import { useNoteStore } from '../../stores/note.store';
+import ColorTagSelector from '../ui/ColorTagSelector.vue';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -63,7 +49,6 @@ const props = defineProps<{
 const emit = defineEmits(['close', 'save']);
 
 const noteStore = useNoteStore();
-const customColors = ref<string[]>([]);
 const isSubmitting = ref(false);
 
 const form = ref({
@@ -72,37 +57,7 @@ const form = ref({
     tagColor: 'blue'
 });
 
-const allColors = computed(() => {
-    // Combine store defaults with local custom colors for the form session
-    // This allows seeing a just-picked custom color immediately
-    const storeColors = noteStore.allTagColors;
-    const uniqueCustom = customColors.value.filter(c => !storeColors.includes(c));
-    return [...storeColors, ...uniqueCustom];
-});
-const customColorValue = ref('#000000');
 
-const getColorStyle = (color: string) => {
-    if (color.startsWith('#')) {
-        return { backgroundColor: color };
-    }
-    return { backgroundColor: `var(--accent-${color})` };
-};
-
-const selectColor = (color: string) => {
-    form.value.tagColor = color;
-};
-
-const handleCustomColor = (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    const color = input.value;
-    customColorValue.value = color;
-
-    // Add to custom colors if not already there (limit to recent 5 maybe?)
-    if (!customColors.value.includes(color) && !DEFAULT_TAG_COLORS.includes(color)) {
-        customColors.value.push(color);
-    }
-    form.value.tagColor = color;
-};
 
 const isEdit = computed(() => !!props.note);
 
@@ -114,10 +69,6 @@ watch(() => props.isOpen, (newVal) => {
                 content: props.note.content,
                 tagColor: props.note.tagColor
             };
-            // If the note has a custom color not in defaults, add it to custom list
-            if (!DEFAULT_TAG_COLORS.includes(props.note.tagColor) && !customColors.value.includes(props.note.tagColor)) {
-                customColors.value.push(props.note.tagColor);
-            }
         } else {
             form.value = {
                 title: '',
@@ -247,81 +198,7 @@ const handleSubmit = async () => {
     background: var(--bg-secondary);
 }
 
-.tag-selector {
-    display: flex;
-    gap: 0.75rem;
-    padding: 0.5rem 0.2rem;
-}
 
-.tag-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    background: var(--bg-tertiary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.tag-btn:hover {
-    transform: scale(1.1);
-}
-
-.tag-btn.active {
-    border-color: var(--text-primary);
-    background: var(--bg-secondary);
-    transform: scale(1.1);
-    box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--accent-primary);
-}
-
-.tag-dot {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-}
-
-.custom-color-wrapper {
-    position: relative;
-    width: 36px;
-    height: 36px;
-}
-
-.color-input {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 2;
-}
-
-.add-color-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2px dashed var(--glass-border);
-    background: var(--bg-tertiary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: all 0.2s;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
-}
-
-.custom-color-wrapper:hover .add-color-btn {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-}
 
 .modal-actions {
     display: flex;

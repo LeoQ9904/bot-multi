@@ -37,14 +37,8 @@
                 <BaseTextarea id="description" v-model="form.description" label="Descripción"
                     placeholder="Detalles adicionales de la tarea..." :rows="3" />
 
-                <div class="form-group">
-                    <label>Color de Etiqueta</label>
-                    <div class="color-picker">
-                        <button v-for="color in colors" :key="color" type="button" class="color-option"
-                            :class="[color, { active: form.tagColor === color }]"
-                            @click="form.tagColor = color"></button>
-                    </div>
-                </div>
+                <ColorTagSelector v-model="form.tagColor" :available-colors="taskStore.allTagColors"
+                    label="Color de etiqueta" />
 
                 <div class="modal-footer">
                     <button type="button" class="btn-cancel" @click="$emit('close')">Cancelar</button>
@@ -63,6 +57,9 @@ import BaseInput from '../ui/BaseInput.vue';
 import BaseSelect from '../ui/BaseSelect.vue';
 import BaseTextarea from '../ui/BaseTextarea.vue';
 import BaseDateTimePicker from '../ui/BaseDateTimePicker.vue';
+import ColorTagSelector from '../ui/ColorTagSelector.vue';
+import { useTaskStore } from '../../stores/task.store';
+
 
 const props = defineProps<{
     isOpen: boolean;
@@ -70,9 +67,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close', 'save']);
-
+const taskStore = useTaskStore();
 const isEditing = ref(false);
-const colors = ['red', 'amber', 'emerald'];
 
 const defaultForm = {
     title: '',
@@ -102,6 +98,7 @@ watch(() => props.isOpen, (newVal) => {
 const handleSubmit = () => {
     emit('save', { ...form.value });
 };
+
 </script>
 
 <style scoped>
