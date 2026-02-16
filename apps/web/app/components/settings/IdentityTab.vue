@@ -6,6 +6,7 @@ const props = defineProps<{
         name: string;
         greeting: string;
         personality: string;
+        interests: string;
     };
     isSaving: boolean;
 }>();
@@ -41,6 +42,17 @@ watch(() => props.identity, (newVal) => {
                 <input v-model="localIdentity.greeting" type="text" class="glass-input"
                     placeholder="ej. ¡Hola! ¿Cómo puedo ayudarte?" :disabled="isSaving" />
                 <p class="form-help">El mensaje de bienvenida en Telegram.</p>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <span class="material-symbols-outlined label-icon">interests</span>
+                    Mis intereses
+                </label>
+                <textarea v-model="localIdentity.interests" class="glass-input textarea" rows="5"
+                    placeholder="ej. Me gusta hablar de tecnologia, programacion, IA, etc."
+                    :disabled="isSaving"></textarea>
+                <p class="form-help">Define los intereses de tu IA.</p>
             </div>
 
             <div class="form-group">

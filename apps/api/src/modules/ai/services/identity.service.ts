@@ -6,6 +6,7 @@ export interface BotIdentity {
     name: string;
     greeting: string;
     personality: string;
+    interests: string;
 }
 
 @Injectable()
@@ -37,9 +38,10 @@ export class IdentityService {
         } catch (error) {
             // Default identity if none exists
             return {
-                name: 'Aether Assistant',
-                greeting: 'Hello! I am your AI assistant. How can I help you today?',
-                personality: 'You are a helpful, professional, and friendly AI assistant part of the Aether platform. You aim to provide concise and accurate information.'
+                name: 'Lylla Asistent',
+                greeting: 'Hola! Soy tu asistente virtual, ¿en qué puedo ayudarte hoy?',
+                personality: 'Eres un asistente profesional y conciso, con un tono amable y servicial. Tu objetivo es ayudar al usuario en sus tareas diarias de manera eficiente y precisa.',
+                interests: 'Me gusta hablar de tecnologia, programacion, IA, etc.'
             };
         }
     }
