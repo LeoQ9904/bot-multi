@@ -1,74 +1,166 @@
 <template>
     <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
-        <div class="modal-card shadow-2xl">
+        <div class="modal-content glass-panel">
+            <!-- Header -->
             <div class="modal-header">
-                <h2>{{ isEditing ? 'Editar Tarea' : 'Nueva Tarea' }}</h2>
+                <div class="header-left">
+                    <div class="icon-box">
+                        <span class="material-symbols-outlined text-indigo-400">add_task</span>
+                    </div>
+                    <div class="header-text">
+                        <h2>{{ isEditing ? 'Editar Tarea' : 'Nueva Tarea' }}</h2>
+                        <p>PANEL DE CREACIÓN AVANZADA</p>
+                    </div>
+                </div>
                 <button class="close-btn" @click="$emit('close')">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <form @submit.prevent="handleSubmit" class="modal-form">
-                <BaseInput id="title" v-model="form.title" label="Título de la Tarea"
-                    placeholder="¿Qué tienes planeado hacer?" required />
-
-                <div class="form-row">
-                    <BaseInput id="project" v-model="form.project" label="Proyecto" placeholder="Nombre del proyecto"
-                        class="flex-1" />
-                    <BaseInput id="category" v-model="form.category" label="Categoría" placeholder="Ej: Diseño, Legal"
-                        required class="flex-1" />
+            <!-- AI Magic Input -->
+            <div class="ai-section" v-if="!isEditing">
+                <div class="ai-gradient-border">
+                    <div class="ai-input-container">
+                        <span class="material-symbols-outlined ai-icon">auto_awesome</span>
+                        <input v-model="aiPrompt" class="ai-input"
+                            placeholder="Dime qué necesitas hacer... (ej: Preparar reporte mensual mañana a las 11:00)"
+                            type="text" :disabled="landingIa" />
+                        <button @click="handleAIProcess" class="ai-btn" :disabled="landingIa">
+                            <template v-if="landingIa">
+                                <Loader size="sm" color="white" />
+                            </template>
+                            <template v-else>
+                                <span class="not-view-text-movil">Procesar</span>
+                                <span class="material-symbols-outlined">bolt</span>
+                            </template>
+                        </button>
+                    </div>
                 </div>
+            </div>
 
-                <div class="form-row">
-                    <div class="flex-1">
-                        <BaseDateTimePicker label="Programar para" v-model="form.scheduledAt" />
+            <!-- Form Body -->
+            <form @submit.prevent="handleSubmit" class="modal-form custom-scrollbar">
+                <div class="form-grid">
+                    <!-- Left Column -->
+                    <div class="column-left">
+                        <section class="form-section">
+                            <div class="section-header">
+                                <span class="step-number step-1">1</span>
+                                <h3 style="width: 100%;">¿QUÉ VAS A HACER?</h3>
+                            </div>
+                            <div class="section-body">
+                                <BaseInput v-model="form.title" label="Título de la Tarea"
+                                    placeholder="Ej: Rediseñar flujo de checkout" class="input-title" required />
+                                <div class="row-2-col">
+                                    <BaseInput v-model="form.project" label="Proyecto"
+                                        placeholder="Ej: Raya Redesign" />
+                                    <BaseInput v-model="form.category" label="Categoría"
+                                        placeholder="Ej: Diseño, Legal..." required />
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="form-section">
+                            <div class="section-header">
+                                <span class="step-number step-2">2</span>
+                                <h3>DETALLES ADICIONALES</h3>
+                            </div>
+                            <div class="section-body">
+                                <BaseTextarea v-model="form.description" label="Descripción"
+                                    placeholder="Escribe notas, enlaces o contexto importante..." :rows="6" />
+                                <ColorTagSelector v-model="form.tagColor" :available-colors="taskStore.allTagColors"
+                                    label="Etiqueta de Color" />
+                            </div>
+                        </section>
                     </div>
 
-                    <BaseSelect id="priority" v-model.number="form.priority" label="Prioridad" class="flex-1">
-                        <option :value="1">Baja</option>
-                        <option :value="2">Media</option>
-                        <option :value="3">Alta</option>
-                    </BaseSelect>
-                </div>
+                    <!-- Right Column -->
+                    <div class="column-right">
+                        <section class="form-section">
+                            <div class="section-header">
+                                <span class="step-number step-3">3</span>
+                                <h3>CUÁNDO Y CUÁNTO</h3>
+                            </div>
+                            <div class="section-body space-y-large">
+                                <div class="field-group">
+                                    <BaseDateTimePicker v-model="form.scheduledAt" label="Programación" />
+                                </div>
 
-                <BaseInput id="duration" v-model="form.duration" label="Duración Estimada" placeholder="Ej: 30 min, 2h"
-                    required />
+                                <div class="row-2-col">
+                                    <div class="field-group">
+                                        <label class="base-label"><span
+                                                class="material-symbols-outlined small-icon">priority_high</span>
+                                            Prioridad</label>
+                                        <div class="pill-group">
+                                            <button type="button" class="pill-btn priority-high"
+                                                :class="{ active: form.priority === 3 }"
+                                                @click="form.priority = 3">ALTA</button>
+                                            <button type="button" class="pill-btn priority-mid"
+                                                :class="{ active: form.priority === 2 }"
+                                                @click="form.priority = 2">MEDIA</button>
+                                            <button type="button" class="pill-btn priority-low"
+                                                :class="{ active: form.priority === 1 }"
+                                                @click="form.priority = 1">BAJA</button>
+                                        </div>
+                                    </div>
+                                </div>
 
-                <BaseTextarea id="description" v-model="form.description" label="Descripción"
-                    placeholder="Detalles adicionales de la tarea..." :rows="3" />
-
-                <ColorTagSelector v-model="form.tagColor" :available-colors="taskStore.allTagColors"
-                    label="Color de etiqueta" />
-
-                <div class="modal-footer">
-                    <button type="button" class="btn-cancel" @click="$emit('close')">Cancelar</button>
-                    <button type="submit" class="btn-submit">
-                        {{ isEditing ? 'Guardar Cambios' : 'Crear Tarea' }}
-                    </button>
+                                <div class="field-group">
+                                    <label class="base-label">Duración Estimada</label>
+                                    <div class="duration-control">
+                                        <span class="material-symbols-outlined icon-timer">timer</span>
+                                        <div class="counter-wrapper">
+                                            <button type="button" class="counter-btn" @click="decrementDuration"><span
+                                                    class="material-symbols-outlined">remove</span></button>
+                                            <div class="counter-display">
+                                                <input :value="durationValue" @input="handleDurationChange"
+                                                    class="duration-input" type="text" />
+                                                <span class="unit">minutos</span>
+                                            </div>
+                                            <button type="button" class="counter-btn" @click="incrementDuration"><span
+                                                    class="material-symbols-outlined">add</span></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
                 </div>
             </form>
+
+            <!-- Footer -->
+            <div class="modal-footer">
+                <button class="btn-cancel" @click="$emit('close')">Cancelar</button>
+                <button class="btn-submit" @click="handleSubmit">
+                    <span class="material-symbols-outlined">{{ isEditing ? 'save' : 'rocket_launch' }}</span>
+                    {{ isEditing ? 'Guardar Cambios' : 'Crear Tarea' }}
+                </button>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import BaseInput from '../ui/BaseInput.vue';
-import BaseSelect from '../ui/BaseSelect.vue';
 import BaseTextarea from '../ui/BaseTextarea.vue';
 import BaseDateTimePicker from '../ui/BaseDateTimePicker.vue';
 import ColorTagSelector from '../ui/ColorTagSelector.vue';
 import { useTaskStore } from '../../stores/task.store';
-
+import { IaService } from '~/services/ia.service';
+import Loader from '../icons/Loader.vue';
 
 const props = defineProps<{
     isOpen: boolean;
     initialData?: any;
 }>();
 
+const { user } = useFirebaseAuth();
 const emit = defineEmits(['close', 'save']);
 const taskStore = useTaskStore();
 const isEditing = ref(false);
+const aiPrompt = ref('');
+const landingIa = ref(false);
 
 const defaultForm = {
     title: '',
@@ -76,7 +168,7 @@ const defaultForm = {
     category: '',
     description: '',
     duration: '30 min',
-    scheduledAt: Date.now() + 3600000, // Default to 1h from now
+    scheduledAt: Date.now() + 3600000,
     priority: 2,
     tagColor: 'emerald'
 };
@@ -92,6 +184,7 @@ watch(() => props.isOpen, (newVal) => {
             form.value = { ...defaultForm, scheduledAt: Date.now() + 3600000 };
             isEditing.value = false;
         }
+        aiPrompt.value = '';
     }
 });
 
@@ -99,30 +192,82 @@ const handleSubmit = () => {
     emit('save', { ...form.value });
 };
 
+const handleAIProcess = async () => {
+    console.log('AI Processing:', aiPrompt.value);
+    try {
+        const token = await user.value?.getIdToken();
+        const promtp = `
+            Este es el listado de tagColor disponibles: 
+            ${taskStore.allTagColors}
+            Esto es lo que quiero: ${aiPrompt.value}
+        `;
+        landingIa.value = true;
+        const response = await IaService.postTasks(promtp, 'main', new Date().toISOString(), token || '');
+        if (response.data && response.data.task) {
+            form.value = { ...response.data.task };
+            durationValue.value = response.data.task.duration;
+        }
+        landingIa.value = false;
+    } catch (error) {
+        console.log(`Error al procesar la tarea: ${error}`);
+        landingIa.value = false;
+    }
+};
+
+const durationValue = computed({
+    get: (): string => {
+        const d = form.value.duration || '30';
+        const m = d.match(/(\d+)/);
+        return (m && m[1]) ? m[1] : '30';
+    },
+    set: (val: string) => {
+        form.value.duration = `${val} min`;
+    }
+});
+
+const incrementDuration = () => {
+    const current = parseInt(durationValue.value) || 0;
+    durationValue.value = (current + 15).toString();
+};
+
+const decrementDuration = () => {
+    const current = parseInt(durationValue.value) || 0;
+    durationValue.value = Math.max(5, current - 15).toString();
+};
+
+const handleDurationChange = (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    durationValue.value = target.value.replace(/\D/g, '');
+};
 </script>
 
 <style scoped>
+/* Modal Overlay and Container */
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--shadow);
     backdrop-filter: blur(8px);
     z-index: 2000;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: 1.5rem;
 }
 
-.modal-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--glass-border);
-    border-radius: 24px;
+.modal-content {
     width: 100%;
-    max-width: 500px;
+    max-width: 64rem;
     max-height: 90vh;
-    overflow-y: auto;
+    border-radius: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     animation: modalIn 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    border: 1px solid var(--glass-border);
+    background: var(--bg-secondary);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 25px 50px -12px var(--shadow);
 }
 
 @keyframes modalIn {
@@ -137,125 +282,492 @@ const handleSubmit = () => {
     }
 }
 
+/* Header */
 .modal-header {
-    padding: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    padding: 1.5rem 2rem;
     border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(var(--bg-secondary-rgb), 0.4);
 }
 
-.modal-header h2 {
-    font-size: 1.25rem;
-    font-weight: 800;
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.icon-box {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.75rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.text-indigo-400 {
+    color: var(--accent-blue);
+}
+
+.header-text h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
     color: var(--text-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.header-text p {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
     margin: 0;
 }
 
 .close-btn {
-    background: var(--bg-tertiary);
-    border: none;
-    color: var(--text-secondary);
-    width: 36px;
-    height: 36px;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: none;
     cursor: pointer;
+    transition: all 0.2s;
 }
 
+.close-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* AI Section */
+.ai-section {
+    padding: 1.5rem 2rem;
+    background: rgba(var(--bg-secondary-rgb), 0.6);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.ai-gradient-border {
+    position: relative;
+    background: var(--bg-tertiary);
+    border-radius: 16px;
+    padding: 1px;
+}
+
+.ai-gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-tertiary));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.ai-input-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 15px;
+    position: relative;
+    z-index: 1;
+}
+
+.ai-icon {
+    font-size: 1.5rem;
+    color: var(--accent-primary);
+}
+
+.ai-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    font-size: 1.125rem;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.ai-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.ai-btn {
+    padding: 0.625rem 1.5rem;
+    background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 700;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 10px 15px -3px var(--glow);
+    transition: all 0.2s;
+}
+
+.ai-btn:hover {
+    filter: brightness(1.1);
+}
+
+/* Form Layout */
 .modal-form {
-    padding: 1.5rem;
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+}
+
+@media (min-width: 1024px) {
+    .form-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.step-number {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    margin: 0 !important;
+}
+
+.step-1 {
+    background: var(--glass-bg);
+    color: var(--accent-primary);
+    border: 1px solid var(--glass-border);
+}
+
+.step-2 {
+    background: var(--glass-bg);
+    color: var(--accent-purple);
+    border: 1px solid var(--glass-border);
+}
+
+.step-3 {
+    background: var(--glass-bg);
+    color: var(--accent-tertiary);
+    border: 1px solid var(--glass-border);
+}
+
+.section-header h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.section-body {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
 }
 
-.form-group {
+.row-2-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Custom Component Overrides */
+:deep(.base-input),
+:deep(.base-select),
+:deep(.base-textarea),
+:deep(.dp__input) {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--glass-border) !important;
+    color: var(--text-primary) !important;
+    border-radius: 1rem !important;
+}
+
+:deep(.base-input:focus),
+:deep(.base-select:focus),
+:deep(.base-textarea:focus),
+:deep(.dp__input:focus) {
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 2px var(--glow) !important;
+}
+
+:deep(.input-title .base-input) {
+    font-size: 1.125rem !important;
+    padding: 0.75rem 1rem !important;
+}
+
+/* Pill Groups */
+.field-group {
     display: flex;
     flex-direction: column;
+    gap: 0.75rem;
+}
+
+.base-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
-.form-row {
-    display: flex;
-    gap: 1rem;
+.small-icon {
+    font-size: 0.875rem;
 }
 
-label {
-    font-size: 0.8rem;
+.pill-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.pill-btn {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--glass-border);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
     font-weight: 700;
-    color: var(--text-tertiary);
-}
-
-.color-picker {
-    display: flex;
-    gap: 1rem;
-}
-
-.color-option {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 4px solid transparent;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.color-option.red {
-    background: #ef4444;
+/* Priority Colors */
+.priority-high.active {
+    border-color: var(--accent-red);
+    background: rgba(var(--bg-tertiary-rgb), 0.1);
+    color: var(--accent-red);
 }
 
-.color-option.amber {
-    background: #f59e0b;
+.priority-mid.active {
+    border-color: var(--accent-primary);
+    background: rgba(var(--bg-tertiary-rgb), 0.1);
+    color: var(--accent-primary);
 }
 
-.color-option.emerald {
-    background: #10b981;
+.priority-low.active {
+    border-color: var(--accent-emerald);
+    background: rgba(var(--bg-tertiary-rgb), 0.1);
+    color: var(--accent-emerald);
 }
 
-.color-option.active {
-    border-color: white;
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+.pill-btn:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
-.modal-footer {
+/* Duration Control */
+.duration-control {
     display: flex;
+    align-items: center;
     gap: 1rem;
-    margin-top: 1rem;
+    background: var(--bg-tertiary);
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--glass-border);
+}
+
+.icon-timer {
+    color: var(--accent-primary);
+}
+
+.counter-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.counter-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.counter-btn:hover {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+}
+
+.counter-display {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.duration-input {
+    width: 3rem;
+    background: transparent;
+    border: none;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: monospace;
+    outline: none;
+}
+
+.unit {
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+/* Footer */
+.modal-footer {
+    padding: 1.5rem 2rem;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
 }
 
 .btn-cancel {
-    flex: 1;
+    padding: 0.875rem 2rem;
+    border-radius: 1rem;
     background: transparent;
-    border: 1px solid var(--glass-border);
     color: var(--text-secondary);
-    padding: 0.75rem;
-    border-radius: 12px;
     font-weight: 700;
+    border: 1px solid var(--glass-border);
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+    background: var(--glass-bg);
+    color: var(--text-primary);
 }
 
 .btn-submit {
-    flex: 2;
-    background: var(--accent-primary);
+    padding: 0.875rem 2.5rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
     color: white;
-    border: none;
-    padding: 0.75rem;
-    border-radius: 12px;
     font-weight: 700;
+    border: none;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     box-shadow: 0 4px 12px var(--glow);
+    transition: all 0.2s;
 }
 
-.flex-1 {
-    flex: 1;
+.btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px var(--glow);
 }
 
-@media (max-width: 480px) {
-    .form-row {
-        flex-direction: column;
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+
+    .modal-content {
+        max-width: 100%;
+        max-height: 100%;
+        padding: 0;
+    }
+
+    .modal-header {
+        padding: 0.5rem 0.8rem;
+        border-radius: 0;
+    }
+
+    .modal-form {
+        padding: 0.5rem 0.8rem;
+        border-radius: 0;
+    }
+
+    .modal-footer {
+        padding: 0.5rem 0.8rem;
+        border-radius: 0;
+    }
+
+    .ai-section {
+        padding: 0.5rem 0.8rem;
+    }
+
+    .ai-input-container {
+        padding: 0.5rem 0.8rem;
+        gap: 0.5rem;
+    }
+
+    .ai-btn {
+        padding: 0.5rem 0.8rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .form-section {
+        gap: 0.5rem;
     }
 }
 </style>

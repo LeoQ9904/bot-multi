@@ -13,6 +13,7 @@ export const IA_ENDPOINTS = {
     CHAT: '/ai/chat',
     IDENTITY: '/ai/identity',
     INTERESTS: '/ai/interests',
+    TASKS: '/ai/tasks',
 } as const;
 
 /**

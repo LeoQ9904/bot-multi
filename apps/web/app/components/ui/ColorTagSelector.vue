@@ -153,4 +153,27 @@ const handleCustomColor = (event: Event) => {
     border-color: var(--accent-primary);
     color: var(--accent-primary);
 }
+
+@media (max-width: 768px) {
+    .tag-selector {
+        gap: 0.5rem;
+        padding: 0.2rem;
+        flex-wrap: wrap;
+    }
+
+    .tag-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .custom-color-wrapper {
+        width: 32px;
+        height: 32px;
+    }
+
+    .add-color-btn {
+        width: 32px;
+        height: 32px;
+    }
+}
 </style>

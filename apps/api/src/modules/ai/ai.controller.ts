@@ -4,6 +4,7 @@ import { FirebaseGuard } from '../../common/guards/firebase.guard';
 import { Interests, InterestsResponse } from 'src/interfaces';
 import path from 'path';
 import * as fs from 'fs';
+import { Task } from '@prisma/client';
 
 @Controller('ai')
 export class AIController {
@@ -87,6 +88,47 @@ export class AIController {
     const data: Interests[] = JSON.parse(response.response);
     await this.syncUserInterests(userId, data);
     return { interests: data };
+  }
+
+  @UseGuards(FirebaseGuard)
+  @Post('tasks')
+  async tasks(
+    @Req() req: any,
+    @Body('prompt') prompt: string,
+    @Body('conversationId') conversationId: string = 'main',
+    @Body('datetime') datetime: string = new Date().toISOString(),
+  ): Promise<{ task: Task }> {
+    const userId = req.user.id;
+    const prePrompt = `
+    El usuario le esta solicitando crear la sicuiente tarea: ${prompt}
+    **IMPORTANT**: retornar la estructura con la siguiente interfaz: 
+    export interface Task {
+        title: string;
+        project: string;
+        description: string; // Siempre generar una descripción en relación a la solcitud del cliente, generar descripción amplia y con buena redacción
+        category: string;
+        status: TaskStatus;
+        priority: TaskPriority; // 1 = baja, 2 = media, 3 = alta
+        duration: string; // en minutos, generar un minimo de 30 minutos, si son 2 horas retornar 120 min, ect.
+        tagColor: string; // color en formato hex, ejemplo: #FF0000
+        scheduledAt: number; // retornar en formato toISOString
+    }
+    **IMPORTANT**: Solo retornar el objeto con los valores.
+    **IMPORTANT**: No retornar nada más.
+    **IMPORTANT**: NO REALIZAR CREACIÓN EN LA BASE DE DATOS, SOLO RETORNAR EL OBJETO.
+    **IMPORTANT**: La fecha actual del cliente es ${datetime}, retornar el dicho formato con la fecha esperada, ejemplo: "Crear tarea para mañana, a dicha fecha le agregar un día más, retornar en el mismo formato para el campo scheduledAt".
+    **IMPORTANT**: UTILIZAR FECHA ACTUAL, NO REPORTAR FECHAS ANTERIORES A LA INDICADA POR EL USUARIO.
+    `;
+
+    console.log(prePrompt);
+    const response = await this.aiService.generateResponse(
+      userId,
+      conversationId,
+      prePrompt,
+      'nuxt',
+    );
+    const task: Task = JSON.parse(response.response);
+    return { task };
   }
 
   private async getListInterests(userId: string, createdAt: string): Promise<InterestsResponse | null> {
