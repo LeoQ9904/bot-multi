@@ -1,38 +1,36 @@
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click.self="close">
-        <div class="modal-content glass-morphism">
-            <div class="modal-header">
-                <h2 class="modal-title">{{ isEdit ? 'Editar Nota' : 'Nueva Nota' }}</h2>
-                <button class="close-btn" @click="close">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
+    <BaseModal :show="isOpen" title="Nueva Nota" subtitle="Vista de gestión de nota" icon="note_add"
+        @close="$emit('close')">
+        <template #top>
+            <BaseAiInput v-model="aiPrompt" :loading="landingIa" placeholder="¿Qué quieres que te ayude a crear?"
+                @process="handleAIProcess" />
+        </template>
+        <form @submit.prevent="handleSubmit" class="note-form">
+            <div class="form-group">
+                <label for="title">Título</label>
+                <input id="title" v-model="form.title" type="text" placeholder="Título de la nota" required
+                    class="form-input" />
             </div>
 
-            <form @submit.prevent="handleSubmit" class="note-form">
-                <div class="form-group">
-                    <label for="title">Título</label>
-                    <input id="title" v-model="form.title" type="text" placeholder="Título de la nota" required
-                        class="form-input" />
-                </div>
+            <div class="form-group">
+                <label for="content">Contenido</label>
+                <textarea id="content" v-model="form.content" placeholder="Escribe algo..." required
+                    class="form-textarea" rows="15"></textarea>
+            </div>
 
-                <div class="form-group">
-                    <label for="content">Contenido</label>
-                    <textarea id="content" v-model="form.content" placeholder="Escribe algo..." required
-                        class="form-textarea" rows="6"></textarea>
-                </div>
+            <ColorTagSelector v-model="form.tagColor" :available-colors="noteStore.allTagColors"
+                label="Color de etiqueta" />
 
-                <ColorTagSelector v-model="form.tagColor" :available-colors="noteStore.allTagColors"
-                    label="Color de etiqueta" />
-
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" @click="close">Cancelar</button>
-                    <button type="submit" class="btn-primary" :disabled="isSubmitting">
-                        {{ isEdit ? 'Guardar Cambios' : 'Crear Nota' }}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+        </form>
+        <template #footer>
+            <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
+                <button type="button" class="btn-secondary" @click="close">Cancelar</button>
+                <button @click="handleSubmit" class="btn-primary" :disabled="isSubmitting">
+                    {{ isEdit ? 'Guardar Cambios' : 'Crear Nota' }}
+                </button>
+            </div>
+        </template>
+    </BaseModal>
 </template>
 
 <script setup lang="ts">
@@ -40,6 +38,9 @@ import { ref, watch, computed } from 'vue';
 import type { Note } from '../../types/note.types';
 import { useNoteStore } from '../../stores/note.store';
 import ColorTagSelector from '../ui/ColorTagSelector.vue';
+import BaseModal from '../ui/BaseModal.vue';
+import BaseAiInput from '../ui/BaseAiInput.vue';
+import { IaService } from '~/services/ia.service';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -47,9 +48,11 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits(['close', 'save']);
-
+const { user } = useFirebaseAuth();
 const noteStore = useNoteStore();
 const isSubmitting = ref(false);
+const aiPrompt = ref('');
+const landingIa = ref(false);
 
 const form = ref({
     title: '',
@@ -90,6 +93,36 @@ const handleSubmit = async () => {
         close();
     } finally {
         isSubmitting.value = false;
+    }
+};
+
+const handleAIProcess = async () => {
+    if (!aiPrompt.value.trim()) return;
+    landingIa.value = true;
+    try {
+        const token = await user.value?.getIdToken();
+        if (!token) return;
+        const prompt = `
+            Eres un asistente de planeación, tu objetivo es ayudar al usuario a crear notas.
+            **IMPORTANT**: No crear nota en este proceso en el sistema, solo retornar el siguiente objeto JSON:
+            {
+                "title": "",
+                "content": "",
+                "tagColor": ""
+            }
+            **IMPORTANT**: Ajustar el título y la descripción agregando más contenido y iconos si es necesario.
+            **IMPORTANT**: El color de la etiqueta debe ser uno de los siguientes: ${noteStore.allTagColors.join(', ')}
+            La información generada por el usuario es:
+            ${aiPrompt.value}
+        `
+        const response = await IaService.chat(prompt, 'main', token);
+        const note: Note = JSON.parse(response.data.response);
+        form.value = note;
+    } catch (error) {
+        console.error('Error generating note:', error);
+    } finally {
+        landingIa.value = false;
+        aiPrompt.value = '';
     }
 };
 </script>
