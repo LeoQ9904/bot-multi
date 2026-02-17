@@ -1,24 +1,9 @@
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
-        <div class="modal-content glass-panel">
-            <!-- Header -->
-            <div class="modal-header">
-                <div class="header-left">
-                    <div class="icon-box">
-                        <span class="material-symbols-outlined text-indigo-400">add_task</span>
-                    </div>
-                    <div class="header-text">
-                        <h2>{{ isEditing ? 'Editar Tarea' : 'Nueva Tarea' }}</h2>
-                        <p>PANEL DE CREACIÓN AVANZADA</p>
-                    </div>
-                </div>
-                <button class="close-btn" @click="$emit('close')">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-
-            <!-- AI Magic Input -->
-            <div class="ai-section" v-if="!isEditing">
+    <BaseModal :show="isOpen" :title="isEditing ? 'Editar Tarea' : 'Nueva Tarea'" subtitle="PANEL DE CREACIÓN AVANZADA"
+        icon="add_task" @close="$emit('close')">
+        <!-- AI Magic Input -->
+        <template #top v-if="!isEditing">
+            <div class="ai-section">
                 <div class="ai-gradient-border">
                     <div class="ai-input-container">
                         <span class="material-symbols-outlined ai-icon">auto_awesome</span>
@@ -37,111 +22,112 @@
                     </div>
                 </div>
             </div>
+        </template>
 
-            <!-- Form Body -->
-            <form @submit.prevent="handleSubmit" class="modal-form custom-scrollbar">
-                <div class="form-grid">
-                    <!-- Left Column -->
-                    <div class="column-left">
-                        <section class="form-section">
-                            <div class="section-header">
-                                <span class="step-number step-1">1</span>
-                                <h3 style="width: 100%;">¿QUÉ VAS A HACER?</h3>
+        <!-- Form Body (Inner scrolling part) -->
+        <form @submit.prevent="handleSubmit" class="modal-form-content">
+            <div class="form-grid">
+                <!-- Left Column -->
+                <div class="column-left">
+                    <section class="form-section">
+                        <div class="section-header">
+                            <span class="step-number step-1">1</span>
+                            <h3 style="width: 100%;">¿QUÉ VAS A HACER?</h3>
+                        </div>
+                        <div class="section-body">
+                            <BaseInput v-model="form.title" label="Título de la Tarea"
+                                placeholder="Ej: Rediseñar flujo de checkout" class="input-title" required />
+                            <div class="row-2-col">
+                                <BaseInput v-model="form.project" label="Proyecto" placeholder="Ej: Raya Redesign" />
+                                <BaseInput v-model="form.category" label="Categoría" placeholder="Ej: Diseño, Legal..."
+                                    required />
                             </div>
-                            <div class="section-body">
-                                <BaseInput v-model="form.title" label="Título de la Tarea"
-                                    placeholder="Ej: Rediseñar flujo de checkout" class="input-title" required />
-                                <div class="row-2-col">
-                                    <BaseInput v-model="form.project" label="Proyecto"
-                                        placeholder="Ej: Raya Redesign" />
-                                    <BaseInput v-model="form.category" label="Categoría"
-                                        placeholder="Ej: Diseño, Legal..." required />
-                                </div>
-                            </div>
-                        </section>
+                        </div>
+                    </section>
 
-                        <section class="form-section">
-                            <div class="section-header">
-                                <span class="step-number step-2">2</span>
-                                <h3>DETALLES ADICIONALES</h3>
-                            </div>
-                            <div class="section-body">
-                                <BaseTextarea v-model="form.description" label="Descripción"
-                                    placeholder="Escribe notas, enlaces o contexto importante..." :rows="6" />
-                                <ColorTagSelector v-model="form.tagColor" :available-colors="taskStore.allTagColors"
-                                    label="Etiqueta de Color" />
-                            </div>
-                        </section>
-                    </div>
-
-                    <!-- Right Column -->
-                    <div class="column-right">
-                        <section class="form-section">
-                            <div class="section-header">
-                                <span class="step-number step-3">3</span>
-                                <h3>CUÁNDO Y CUÁNTO</h3>
-                            </div>
-                            <div class="section-body space-y-large">
-                                <div class="field-group">
-                                    <BaseDateTimePicker v-model="form.scheduledAt" label="Programación" />
-                                </div>
-
-                                <div class="row-2-col">
-                                    <div class="field-group">
-                                        <label class="base-label"><span
-                                                class="material-symbols-outlined small-icon">priority_high</span>
-                                            Prioridad</label>
-                                        <div class="pill-group">
-                                            <button type="button" class="pill-btn priority-high"
-                                                :class="{ active: form.priority === 3 }"
-                                                @click="form.priority = 3">ALTA</button>
-                                            <button type="button" class="pill-btn priority-mid"
-                                                :class="{ active: form.priority === 2 }"
-                                                @click="form.priority = 2">MEDIA</button>
-                                            <button type="button" class="pill-btn priority-low"
-                                                :class="{ active: form.priority === 1 }"
-                                                @click="form.priority = 1">BAJA</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="field-group">
-                                    <label class="base-label">Duración Estimada</label>
-                                    <div class="duration-control">
-                                        <span class="material-symbols-outlined icon-timer">timer</span>
-                                        <div class="counter-wrapper">
-                                            <button type="button" class="counter-btn" @click="decrementDuration"><span
-                                                    class="material-symbols-outlined">remove</span></button>
-                                            <div class="counter-display">
-                                                <input :value="durationValue" @input="handleDurationChange"
-                                                    class="duration-input" type="text" />
-                                                <span class="unit">minutos</span>
-                                            </div>
-                                            <button type="button" class="counter-btn" @click="incrementDuration"><span
-                                                    class="material-symbols-outlined">add</span></button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    </div>
+                    <section class="form-section">
+                        <div class="section-header">
+                            <span class="step-number step-2">2</span>
+                            <h3>DETALLES ADICIONALES</h3>
+                        </div>
+                        <div class="section-body">
+                            <BaseTextarea v-model="form.description" label="Descripción"
+                                placeholder="Escribe notas, enlaces o contexto importante..." :rows="6" />
+                            <ColorTagSelector v-model="form.tagColor" :available-colors="taskStore.allTagColors"
+                                label="Etiqueta de Color" />
+                        </div>
+                    </section>
                 </div>
-            </form>
 
-            <!-- Footer -->
-            <div class="modal-footer">
+                <!-- Right Column -->
+                <div class="column-right">
+                    <section class="form-section">
+                        <div class="section-header">
+                            <span class="step-number step-3">3</span>
+                            <h3>CUÁNDO Y CUÁNTO</h3>
+                        </div>
+                        <div class="section-body space-y-large">
+                            <div class="field-group">
+                                <BaseDateTimePicker v-model="form.scheduledAt" label="Programación" />
+                            </div>
+
+                            <div class="row-2-col">
+                                <div class="field-group">
+                                    <label class="base-label"><span
+                                            class="material-symbols-outlined small-icon">priority_high</span>
+                                        Prioridad</label>
+                                    <div class="pill-group">
+                                        <button type="button" class="pill-btn priority-high"
+                                            :class="{ active: form.priority === 3 }"
+                                            @click="form.priority = 3">ALTA</button>
+                                        <button type="button" class="pill-btn priority-mid"
+                                            :class="{ active: form.priority === 2 }"
+                                            @click="form.priority = 2">MEDIA</button>
+                                        <button type="button" class="pill-btn priority-low"
+                                            :class="{ active: form.priority === 1 }"
+                                            @click="form.priority = 1">BAJA</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="field-group">
+                                <label class="base-label">Duración Estimada</label>
+                                <div class="duration-control">
+                                    <span class="material-symbols-outlined icon-timer">timer</span>
+                                    <div class="counter-wrapper">
+                                        <button type="button" class="counter-btn" @click="decrementDuration"><span
+                                                class="material-symbols-outlined">remove</span></button>
+                                        <div class="counter-display">
+                                            <input :value="durationValue" @input="handleDurationChange"
+                                                class="duration-input" type="text" />
+                                            <span class="unit">minutos</span>
+                                        </div>
+                                        <button type="button" class="counter-btn" @click="incrementDuration"><span
+                                                class="material-symbols-outlined">add</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </form>
+
+        <template #footer>
+            <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
                 <button class="btn-cancel" @click="$emit('close')">Cancelar</button>
                 <button class="btn-submit" @click="handleSubmit">
                     <span class="material-symbols-outlined">{{ isEditing ? 'save' : 'rocket_launch' }}</span>
                     {{ isEditing ? 'Guardar Cambios' : 'Crear Tarea' }}
                 </button>
             </div>
-        </div>
-    </div>
+        </template>
+    </BaseModal>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
+import BaseModal from '../ui/BaseModal.vue';
 import BaseInput from '../ui/BaseInput.vue';
 import BaseTextarea from '../ui/BaseTextarea.vue';
 import BaseDateTimePicker from '../ui/BaseDateTimePicker.vue';
@@ -149,6 +135,7 @@ import ColorTagSelector from '../ui/ColorTagSelector.vue';
 import { useTaskStore } from '../../stores/task.store';
 import { IaService } from '~/services/ia.service';
 import Loader from '../icons/Loader.vue';
+import { useFirebaseAuth } from '../../composables/useAuth';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -242,120 +229,13 @@ const handleDurationChange = (e: Event) => {
 </script>
 
 <style scoped>
-/* Modal Overlay and Container */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: var(--shadow);
-    backdrop-filter: blur(8px);
-    z-index: 2000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem;
-}
-
-.modal-content {
-    width: 100%;
-    max-width: 64rem;
-    max-height: 90vh;
-    border-radius: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    animation: modalIn 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
-    border: 1px solid var(--glass-border);
-    background: var(--bg-secondary);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 25px 50px -12px var(--shadow);
-}
-
-@keyframes modalIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9) translateY(20px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-
-/* Header */
-.modal-header {
-    padding: 1.5rem 2rem;
-    border-bottom: 1px solid var(--glass-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgba(var(--bg-secondary-rgb), 0.4);
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.icon-box {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.75rem;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.text-indigo-400 {
-    color: var(--accent-blue);
-}
-
-.header-text h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0;
-    line-height: 1.2;
-}
-
-.header-text p {
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    font-weight: 500;
-    margin: 0;
-}
-
-.close-btn {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-tertiary);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.close-btn:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-}
-
 /* AI Section */
 .ai-section {
-    padding: 1.5rem 2rem;
-    background: rgba(var(--bg-secondary-rgb), 0.6);
-    border-bottom: 1px solid var(--glass-border);
+    padding: 1rem;
+    /* Adjusted since BaseModal gives side padding */
 }
 
+/* ...rest of existing styles, but removing .modal-overlay, .modal-content, .modal-header, .modal-footer, .close-btn, .custom-scrollbar and media queries already handled by BaseModal... */
 .ai-gradient-border {
     position: relative;
     background: var(--bg-tertiary);
@@ -427,12 +307,6 @@ const handleDurationChange = (e: Event) => {
 }
 
 /* Form Layout */
-.modal-form {
-    flex: 1;
-    padding: 2rem;
-    overflow-y: auto;
-}
-
 .form-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -661,17 +535,7 @@ const handleDurationChange = (e: Event) => {
     font-weight: 500;
 }
 
-/* Footer */
-.modal-footer {
-    padding: 1.5rem 2rem;
-    background: var(--bg-secondary);
-    border-top: 1px solid var(--glass-border);
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-
+/* Footer Buttons */
 .btn-cancel {
     padding: 0.875rem 2rem;
     border-radius: 1rem;
@@ -708,66 +572,21 @@ const handleDurationChange = (e: Event) => {
     box-shadow: 0 8px 16px var(--glow);
 }
 
-/* Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--bg-tertiary);
-    border-radius: 10px;
-}
-
 @media (max-width: 768px) {
-    .modal-overlay {
-        padding: 0.5rem;
-    }
-
-    .modal-content {
-        max-width: 100%;
-        max-height: 100%;
-        padding: 0;
-    }
-
-    .modal-header {
-        padding: 0.5rem 0.8rem;
-        border-radius: 0;
-    }
-
-    .modal-form {
-        padding: 0.5rem 0.8rem;
-        border-radius: 0;
-    }
-
-    .modal-footer {
-        padding: 0.5rem 0.8rem;
-        border-radius: 0;
-    }
-
-    .ai-section {
-        padding: 0.5rem 0.8rem;
-    }
-
-    .ai-input-container {
-        padding: 0.5rem 0.8rem;
-        gap: 0.5rem;
-    }
-
     .ai-btn {
         padding: 0.5rem 0.8rem;
     }
 
     .form-grid {
-        grid-template-columns: 1fr;
         gap: 0.5rem;
     }
 
     .form-section {
         gap: 0.5rem;
+    }
+
+    .not-view-text-movil {
+        display: none;
     }
 }
 </style>
