@@ -1,92 +1,158 @@
 <template>
     <div v-if="isOpen && task" class="modal-overlay" @click.self="$emit('close')">
-        <div class="modal-card shadow-2xl">
+        <div class="modal-container glass-panel shadow-2xl">
+            <!-- Header -->
             <div class="modal-header">
-                <div class="header-content">
-                    <div class="category-status">
-                        <span class="category-tag">{{ task.category }}</span>
-                        <span v-if="task.status !== 'pending'" class="status-badge-modal" :class="task.status">
-                            {{ getStatusLabel(task.status) }}
-                        </span>
+                <div class="header-left">
+                    <div class="header-icon-box">
+                        <span class="material-symbols-outlined">task_alt</span>
                     </div>
-                    <h2>Detalles de la Tarea</h2>
+                    <div class="header-text">
+                        <h2 style="color: var(--text-primary);">Detalles de la Tarea</h2>
+                        <p class="subtitle">Vista de gestión de tarea</p>
+                    </div>
                 </div>
                 <button class="close-btn" @click="$emit('close')">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
 
-            <div class="modal-body">
-                <div class="detail-header">
-                    <h1 class="task-title">{{ task.title }}</h1>
-                    <div class="project-info" v-if="task.project">
-                        <span class="material-symbols-outlined">folder</span>
-                        <span>{{ task.project }}</span>
-                    </div>
-                </div>
-
-                <div class="detail-section">
-                    <label>Descripción</label>
-                    <div class="description-content" v-if="task.description">
-                        {{ task.description }}
-                    </div>
-                    <div class="description-empty" v-else>
-                        Sin descripción adicional.
-                    </div>
-                </div>
-
-                <div class="detail-grid">
-                    <div class="grid-item">
-                        <label>Programado para</label>
-                        <div class="item-value">
-                            <span class="material-symbols-outlined">calendar_today</span>
-                            {{ formatDate(task.scheduledAt) }}
+            <!-- AI Summary Section -->
+            <div class="ai-summary-section" v-if="task.aiSummary || true">
+                <div class="ai-summary-border">
+                    <div class="ai-summary-content">
+                        <div class="ai-icon">
+                            <span class="material-symbols-outlined">auto_awesome</span>
                         </div>
-                    </div>
-                    <div class="grid-item">
-                        <label>Hora</label>
-                        <div class="item-value">
-                            <span class="material-symbols-outlined">schedule</span>
-                            {{ formatTime(task.scheduledAt) }}
-                        </div>
-                    </div>
-                    <div class="grid-item">
-                        <label>Prioridad</label>
-                        <div class="priority-badges">
-                            <span v-for="i in 3" :key="i" class="material-symbols-outlined bolt-icon"
-                                :class="{ filled: i <= task.priority }">
-                                bolt
-                            </span>
-                        </div>
-                    </div>
-                    <div class="grid-item">
-                        <label>Duración</label>
-                        <div class="item-value">
-                            <span class="material-symbols-outlined">timer</span>
-                            {{ task.duration }}
+                        <div class="ai-text-box">
+                            <p class="ai-badge">Resumen de IA</p>
+                            <p class="ai-text">
+                                Este es el ejemplo del resumen de la tarea, se debe que realizar la integración con el
+                                modelo de IA para que genere el resumen de la tarea.
+                            </p>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Scrollable Content -->
+            <div class="modal-body custom-scrollbar">
+                <div class="details-grid">
+                    <!-- Left Column: Core Info -->
+                    <div class="info-column">
+                        <div class="detail-card main-info">
+                            <div class="field-group">
+                                <span class="field-label">Título</span>
+                                <h1 class="task-title">{{ task.title }}</h1>
+                            </div>
+
+                            <div class="row-fields">
+                                <div class="field-group">
+                                    <span class="field-label">Proyecto</span>
+                                    <div class="project-pill">
+                                        <span class="project-dot"></span>
+                                        <p class="project-name">{{ task.project || 'Sin proyecto' }}</p>
+                                    </div>
+                                </div>
+                                <div class="field-group">
+                                    <span class="field-label">Categoría</span>
+                                    <div class="category-pill">
+                                        {{ task.category }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="field-group description-section">
+                                <span class="field-label">Descripción</span>
+                                <p class="description-text">
+                                    {{ task.description || 'Sin descripción adicional.' }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Tag Section -->
+                        <div class="tag-highlight"
+                            :style="{ borderColor: task.tagColor + '33', background: task.tagColor + '0D' }">
+                            <div class="tag-line" :style="{ background: task.tagColor }">
+                            </div>
+                            <div class="tag-content">
+                                <p class="field-label-mini">Etiqueta</p>
+                                <div
+                                    :style="{ backgroundColor: task.tagColor, width: '100%', height: '15px', borderRadius: '999px' }">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Stats & Schedule -->
+                    <div class="stats-column">
+                        <div class="detail-card stats-card">
+                            <div class="stat-row">
+                                <span class="material-symbols-outlined stat-icon">calendar_month</span>
+                                <div class="stat-info">
+                                    <span class="field-label">Programación</span>
+                                    <p class="stat-value">{{ formatFullDate(task.scheduledAt) }}</p>
+                                </div>
+                            </div>
+
+                            <div class="stat-grid-row">
+                                <div class="field-group">
+                                    <span class="field-label">Prioridad</span>
+                                    <div class="priority-pill" :class="'prio-' + task.priority">
+                                        {{ getPriorityLabel(task.priority) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="duration-section">
+                                <div class="duration-header">
+                                    <span class="field-label">Duración Estimada</span>
+                                    <div class="duration-value">
+                                        <span class="material-symbols-outlined duration-icon">timer</span>
+                                        <span class="duration-text">{{ task.duration }}</span>
+                                    </div>
+                                </div>
+                                <div class="duration-track">
+                                    <div class="duration-fill"
+                                        :style="{ width: calculateProgress(task.duration) + '%' }"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Time Ago / Status -->
+                        <div class="status-status-card">
+                            <div class="status-indicator">
+                                <div class="pulse-dot"></div>
+                                <span class="status-text">{{ getStatusLabel(task.status) }}</span>
+                            </div>
+                            <span class="created-ago">Creado hace 2h</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
             <div class="modal-footer">
-                <div class="footer-actions">
-                    <button class="btn-action start-stop" :class="{ 'stop': task.status === 'in-progress' }"
-                        @click="handleAction">
-                        <span class="material-symbols-outlined">{{ task.status === 'in-progress' ? 'stop' : 'play_arrow'
-                        }}</span>
-                    </button>
-
-                    <button class="btn-action complete" @click="$emit('complete', task)">
-                        <span class="material-symbols-outlined">check_circle</span>
-                    </button>
-
-                    <button class="btn-edit" @click="$emit('edit', task)">
+                <div class="footer-left">
+                    <button class="action-btn btn-ghost" @click="$emit('edit', task)">
                         <span class="material-symbols-outlined">edit</span>
+                        Editar
                     </button>
-
-                    <button class="btn-edit" @click="$emit('more', task)">
+                    <button class="action-btn btn-ghost-danger" @click="$emit('more', task)">
                         <span class="material-symbols-outlined">delete</span>
+                        Eliminar
+                    </button>
+                </div>
+                <div class="footer-right">
+                    <button class="action-btn btn-secondary" @click="handleAction">
+                        <span class="material-symbols-outlined">
+                            {{ task.status === 'in-progress' ? 'pause' : 'play_arrow' }}
+                        </span>
+                        {{ task.status === 'in-progress' ? 'Pausar' : 'Iniciar' }}
+                    </button>
+                    <button class="action-btn btn-primary" @click="$emit('complete', task)">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        Completar
                     </button>
                 </div>
             </div>
@@ -104,27 +170,40 @@ const emit = defineEmits(['close', 'edit', 'start', 'stop', 'complete', 'more'])
 
 const getStatusLabel = (status: string) => {
     switch (status) {
-        case 'in-progress': return 'Tarea Iniciada';
+        case 'in-progress': return 'Tarea en curso';
         case 'completed': return 'Realizada';
         case 'cancelled': return 'Cancelada';
-        default: return '';
+        default: return 'Pendiente por iniciar';
     }
 };
 
-const formatDate = (ts: number) => {
-    return new Date(ts).toLocaleDateString('es-ES', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long'
-    });
+const getPriorityLabel = (p: number) => {
+    if (p >= 3) return 'ALTA';
+    if (p === 2) return 'MEDIA';
+    return 'BAJA';
 };
 
-const formatTime = (ts: number) => {
-    return new Date(ts).toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
+const formatFullDate = (ts: number) => {
+    const date = new Date(ts);
+    const day = date.getDate();
+    const month = date.toLocaleString('es-ES', { month: 'long' });
+    const time = date.toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+    // Capitalize month
+    const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
+
+    // Check if it's today (simplified)
+    const isToday = new Date().toDateString() === date.toDateString();
+    const dayPrefix = isToday ? 'Hoy, ' : '';
+
+    return `${dayPrefix}${day} de ${capMonth} • ${time}`;
+};
+
+const calculateProgress = (duration: string) => {
+    const match = duration.match(/(\d+)/);
+    const value = match ? parseInt(match[1]) : 30;
+    // Arbitrary progress for visual effect, e.g., max 120 min
+    return Math.min(100, (value / 120) * 100);
 };
 
 const handleAction = () => {
@@ -140,30 +219,31 @@ const handleAction = () => {
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--shadow);
     backdrop-filter: blur(8px);
     z-index: 2100;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: 1.5rem;
 }
 
-.modal-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--glass-border);
-    border-radius: 28px;
+.modal-container {
     width: 100%;
-    max-width: 550px;
+    max-width: 64rem;
+    /* 1024px */
     max-height: 90vh;
-    overflow-y: auto;
-    animation: modalIn 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    border-radius: 2rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: modalScaleIn 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-@keyframes modalIn {
+@keyframes modalScaleIn {
     from {
         opacity: 0;
-        transform: scale(0.95) translateY(20px);
+        transform: scale(0.9) translateY(20px);
     }
 
     to {
@@ -172,251 +252,541 @@ const handleAction = () => {
     }
 }
 
+.glass-panel {
+    background: var(--bg-secondary);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+}
+
+/* Header */
 .modal-header {
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
+    background: rgba(var(--bg-secondary-rgb), 0.4);
     border-bottom: 1px solid var(--glass-border);
 }
 
-.category-status {
+.header-left {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
+    gap: 1rem;
 }
 
-.category-tag {
-    font-size: 0.7rem;
-    font-weight: 800;
+.header-icon-box {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(var(--accent-primary-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-primary-rgb), 0.2);
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: var(--accent-primary);
-    background: var(--glow);
-    padding: 2px 8px;
-    border-radius: 6px;
-    text-transform: uppercase;
-    display: inline-block;
 }
 
-.status-badge-modal {
-    font-size: 0.65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 6px;
-    letter-spacing: 0.05em;
-}
-
-.status-badge-modal.in-progress {
-    background: var(--glow);
-    color: var(--accent-primary);
-    border: 1px solid var(--accent-primary);
-}
-
-.status-badge-modal.completed {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-    border: 1px solid #10b981;
-}
-
-.status-badge-modal.cancelled {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid #ef4444;
-}
-
-.modal-header h2 {
-    font-size: 1rem;
+.header-text h2 {
+    font-size: 1.25rem;
     font-weight: 700;
-    color: var(--text-tertiary);
     margin: 0;
+}
+
+.subtitle {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    margin: 2px 0 0;
 }
 
 .close-btn {
-    background: var(--bg-tertiary);
-    border: none;
-    color: var(--text-secondary);
-    width: 36px;
-    height: 36px;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
     cursor: pointer;
+    transition: all 0.2s;
 }
 
+.close-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* AI Summary */
+.ai-summary-section {
+    padding: 1.5rem 2rem 0;
+}
+
+.ai-summary-border {
+    position: relative;
+    padding: 1.5px;
+    border-radius: 17px;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.5), rgba(192, 132, 252, 0.5), rgba(240, 147, 251, 0.5));
+}
+
+.ai-summary-content {
+    background: var(--bg-tertiary);
+    border-radius: 15px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.ai-icon span {
+    color: var(--accent-primary);
+    font-size: 1.5rem;
+}
+
+.ai-badge {
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    color: var(--accent-primary);
+    margin: 0 0 4px;
+}
+
+.ai-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Body */
 .modal-body {
     padding: 2rem;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+}
+
+@media (max-width: 1024px) {
+    .details-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
+.detail-card {
+    background: rgba(var(--bg-tertiary-rgb), 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+}
+
+.field-group {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 0.25rem;
+}
+
+.field-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+}
+
+.field-label-mini {
+    font-size: 0.6rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-tertiary);
+    margin-bottom: 5px;
 }
 
 .task-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 800;
     color: var(--text-primary);
-    margin: 0;
-    line-height: 1.2;
+    line-height: 1.25;
+    margin: 0.25rem 0 1.5rem;
 }
 
-.project-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-top: 0.75rem;
-}
-
-.detail-section label {
-    display: block;
-    font-size: 0.8rem;
-    font-weight: 800;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    margin-bottom: 0.75rem;
-}
-
-.description-content {
-    background: var(--bg-tertiary);
-    border-radius: 16px;
-    padding: 1.25rem;
-    color: var(--text-primary);
-    font-size: 1rem;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    border: 1px solid var(--glass-border);
-}
-
-.description-empty {
-    color: var(--text-tertiary);
-    font-style: italic;
-}
-
-.detail-grid {
+.row-fields {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
-.grid-item label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-tertiary);
-    margin-bottom: 0.5rem;
-}
-
-.item-value {
+.project-pill {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--text-primary);
+}
+
+.project-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--accent-primary);
+}
+
+.project-name {
     font-weight: 600;
-    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: 0;
 }
 
-.priority-badges {
-    display: flex;
-    color: #fbbf24;
+.category-pill {
+    display: inline-block;
+    padding: 0.125rem 0.75rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
 }
 
-.bolt-icon {
-    font-size: 1.25rem;
-    opacity: 0.2;
-}
-
-.bolt-icon.filled {
-    opacity: 1;
-    font-variation-settings: 'FILL' 1;
-}
-
-.modal-footer {
-    padding: 1.5rem 2rem;
+.description-section {
+    padding-top: 1.5rem;
     border-top: 1px solid var(--glass-border);
 }
 
-.footer-actions {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+.description-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0.5rem 0 0;
+}
+
+.tag-highlight {
+    margin-top: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    border-left: 4px solid;
+    display: flex;
+    align-items: center;
     gap: 1rem;
-    width: 100%;
 }
 
-.btn-edit {
+.tag-name {
+    font-weight: 700;
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Stats Column */
+.stats-column {
     display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.stats-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.stat-row {
+    display: flex;
+    gap: 1rem;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--glass-border);
+}
+
+.stat-icon {
+    color: var(--accent-primary);
+    font-size: 1.5rem;
+}
+
+.stat-value {
+    font-weight: 700;
     color: var(--text-primary);
-    padding: 0.85rem;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
+    margin: 0;
 }
 
-.btn-edit:hover {
-    background: var(--bg-secondary);
+.stat-grid-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
 }
 
-.btn-action {
+.priority-pill {
+    display: inline-block;
+    padding: 0.25rem 1rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.prio-3 {
+    background: rgba(248, 113, 113, 0.1);
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.prio-2 {
+    background: rgba(251, 191, 36, 0.1);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.prio-1 {
+    background: rgba(96, 165, 250, 0.1);
+    color: #60a5fa;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.energy-pill {
+    display: inline-block;
+    padding: 0.25rem 1rem;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.duration-section {
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.duration-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.duration-value {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 0.5rem;
-    border: 1px solid var(--glass-border);
-    padding: 0.85rem;
-    border-radius: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
+    color: var(--accent-primary);
 }
 
-.btn-action.start-stop {
+.duration-text {
+    font-size: 1.125rem;
+    font-weight: 800;
+}
+
+.duration-track {
+    height: 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.duration-fill {
+    height: 100%;
+    background: var(--accent-primary);
+    border-radius: 999px;
+}
+
+.status-status-card {
+    background: rgba(var(--accent-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--accent-primary-rgb), 0.2);
+    border-radius: 1.25rem;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.pulse-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    box-shadow: 0 0 0 rgba(var(--accent-primary-rgb), 0.4);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(var(--accent-primary-rgb), 0.5);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(var(--accent-primary-rgb), 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(var(--accent-primary-rgb), 0);
+    }
+}
+
+.status-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.created-ago {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--accent-primary);
+    text-transform: uppercase;
+}
+
+/* Footer */
+.modal-footer {
+    padding: 1.5rem 2rem;
+    background: rgba(var(--bg-secondary-rgb), 0.8);
+    backdrop-filter: blur(24px);
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+@media (max-width: 768px) {
+    .modal-footer {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .footer-left,
+    .footer-right {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.footer-left,
+.footer-right {
+    display: flex;
+    gap: 1rem;
+}
+
+.action-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-tertiary);
+}
+
+.btn-ghost:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.btn-ghost-danger {
+    background: transparent;
+    color: rgba(248, 113, 113, 0.7);
+}
+
+.btn-ghost-danger:hover {
+    background: rgba(248, 113, 113, 0.1);
+    color: #f87171;
+}
+
+.btn-secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+}
+
+.btn-secondary:hover {
     background: var(--accent-primary);
     color: white;
 }
 
-.btn-action.start-stop.stop {
-    background: #ef4444;
-}
-
-.btn-action.complete {
-    background: #10b981;
+.btn-primary {
+    background: var(--accent-primary);
     color: white;
+    box-shadow: 0 8px 16px var(--glow);
 }
 
-.btn-action.cancel {
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px var(--glow);
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--bg-tertiary);
-    color: #ef4444;
-    border-color: #ef4444;
+    border-radius: 10px;
 }
 
-.btn-action.cancel:hover {
-    background: #ef4444;
-    color: white;
-}
+@media (max-width: 768px) {
+    .modal-overlay {
+        padding: 0.5rem;
+    }
 
-@media (max-width: 480px) {
-    .detail-grid {
-        grid-template-columns: 1fr;
+    .modal-container {
+        max-width: 100%;
+        max-height: 100%;
+        padding: 0;
+    }
+
+    .modal-header {
+        padding: 0.5rem 0.8rem;
+        border-radius: 0;
+    }
+
+    .modal-body {
+        padding: 0.5rem 0.8rem;
+        border-radius: 0;
     }
 
     .modal-footer {
-        padding: 1rem 1.5rem;
+        padding: 0.5rem 0.8rem;
+        border-radius: 0;
+        gap: 0.5rem;
     }
 
-    .footer-actions {
-        grid-template-columns: repeat(4, 1fr);
+    .details-grid {
+        gap: 0.5rem;
     }
 
-    .task-title {
-        font-size: 1.5rem;
+    .ai-summary-section {
+        padding: 0.5rem 0.8rem;
+    }
+
+    .ai-summary-content {
+        padding: 0.5rem 0.8rem;
+        gap: 0.5rem;
     }
 }
 </style>
