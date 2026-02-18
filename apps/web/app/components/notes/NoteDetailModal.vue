@@ -1,45 +1,32 @@
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click.self="close">
-        <div class="modal-content glass-morphism">
-            <div class="modal-header">
-                <div class="title-section">
-                    <span class="tag-dot"
-                        :style="note?.tagColor.startsWith('#') ? { backgroundColor: note.tagColor } : { backgroundColor: `var(--accent-${note?.tagColor})` }"></span>
-                    <h2 class="modal-title">{{ note?.title }}</h2>
-                </div>
-                <div class="header-actions">
-                    <button class="action-btn" @click="$emit('edit', note)">
-                        <span class="material-symbols-outlined">edit</span>
-                    </button>
-                    <button class="action-btn close" @click="close">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="note-body">
-                <div class="note-content" v-html="formattedContent"></div>
-            </div>
-
+    <BaseModal :show="isOpen" @close="close" :title="note?.title">
+        <div class="note-body">
+            <div class="note-content" v-html="formattedContent"></div>
+        </div>
+        <template #footer>
             <div class="modal-footer">
                 <div class="note-info">
                     <span>Creado el {{ formatDate(note?.createdAt) }}</span>
                     <span v-if="note?.updatedAt !== note?.createdAt">• Actualizado el {{ formatDate(note?.updatedAt)
-                    }}</span>
+                        }}</span>
                 </div>
+                <button class="action-btn" @click="$emit('edit', note)">
+                    <span class="material-symbols-outlined">edit</span>
+                </button>
                 <button class="btn-delete" @click="$emit('delete', note)">
                     <span class="material-symbols-outlined">delete</span>
                     Eliminar
                 </button>
             </div>
-        </div>
-    </div>
+        </template>
+    </BaseModal>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Note } from '../../types/note.types';
 import { marked } from 'marked';
+import BaseModal from '../ui/BaseModal.vue';
 
 const props = defineProps<{
     isOpen: boolean;
@@ -167,25 +154,14 @@ const formatDate = (date?: string) => {
 }
 
 .note-body {
-    padding: 2rem;
     overflow-y: auto;
     flex: 1;
     color: var(--text-primary);
     line-height: 1.6;
 }
 
-.note-content :deep(p) {
-    margin-bottom: 1rem;
-}
-
 .note-content :deep(h1, h2, h3) {
-    margin: 1.5rem 0 1rem;
     color: var(--text-primary);
-}
-
-.note-content :deep(ul, ol) {
-    margin-bottom: 1rem;
-    padding-left: 1.5rem;
 }
 
 .note-content :deep(code) {
@@ -195,12 +171,11 @@ const formatDate = (date?: string) => {
 }
 
 .modal-footer {
-    padding: 1.5rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid var(--glass-border);
     background: rgba(var(--bg-secondary-rgb), 0.5);
+    gap: 0.5rem;
 }
 
 .note-info {
