@@ -35,7 +35,7 @@
 
       <!-- Bottom Section: Notes -->
       <div class="notes-section-wrapper">
-        <DashboardRecentNotes :notes="recentNotes" @create="handleCreateNote" @preview="handlePreviewNote" />
+        <DashboardRecentNotes :notes="recentNotes" />
       </div>
     </div>
   </div>
@@ -124,9 +124,6 @@ const toggleTheme = () => {
   isDark.value = !isDark.value;
   // Implementation specific to how theme is handled globally
 };
-
-const handleCreateNote = () => navigateTo('/notes'); // Ideally open modal
-const handlePreviewNote = (note: any) => navigateTo('/notes'); // Ideally open modal
 
 </script>
 

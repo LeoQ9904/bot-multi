@@ -5,39 +5,17 @@
                 <span class="material-symbols-outlined section-icon">description</span>
                 <h3 class="section-title-dashboard">Notas Recientes</h3>
             </div>
-            <button class="btn-text" @click="$emit('create')">
+            <button class="btn-text" @click="openNewNote">
                 <span class="material-symbols-outlined">add</span>
                 Nueva nota
             </button>
         </div>
 
         <div class="notes-grid">
-            <div v-for="note in notes" :key="note.id" class="note-card glass-panel" @click="$emit('preview', note)">
-                <div class="note-header">
-                    <span class="note-tag" :style="{
-                        backgroundColor: getTagColor(note.tagColor) + '20',
-                        color: getTagColor(note.tagColor),
-                        borderColor: getTagColor(note.tagColor) + '30'
-                    }">
-                        {{ note.tagColor || 'Nota' }}
-                    </span>
-                    <span class="material-symbols-outlined open-icon">open_in_new</span>
-                </div>
-                <h4 class="note-title">{{ note.title }}</h4>
-                <p class="note-excerpt">{{ getExcerpt(note.content) }}</p>
+            <NoteCard v-for="note in notes" :key="note.id" :note="note" @click="openViewNote(note.id)"></NoteCard>
 
-                <div class="note-footer">
-                    <span class="note-date">{{ formatDate(note.updatedAt) }}</span>
-                    <!-- Placeholder for potential collaborators or extra meta -->
-                    <div class="note-meta-dots">
-                        <div class="dot"></div>
-                        <div class="dot active"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Create Card (Desktop only usually, but good to have) -->
-            <div class="quick-create-card" @click="$emit('create')">
+            <!-- Quick Create Card -->
+            <div class="quick-create-card" @click="openNewNote">
                 <div class="add-icon-wrapper">
                     <span class="material-symbols-outlined">add</span>
                 </div>
@@ -50,12 +28,14 @@
 
 <script setup lang="ts">
 import type { Note } from '~/types/note.types';
+import { useNoteActions } from '~/composables/useNoteActions';
+import NoteCard from '../notes/NoteCard.vue';
 
 defineProps<{
     notes: Note[];
 }>();
 
-defineEmits(['create', 'preview']);
+const { openNewNote, openViewNote } = useNoteActions();
 
 const getExcerpt = (content: string) => {
     // Strip HTML/Markdown if necessary, but for now just slice

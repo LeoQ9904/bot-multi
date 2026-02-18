@@ -21,19 +21,20 @@
     </div>
 
     <!-- Modals -->
-    <NoteDetailModal :is-open="isDetailModalOpen" :note="selectedNote" @close="isDetailModalOpen = false"
+    <NoteDetailModal :is-open="isDetailModalOpen" :note="selectedNote" @close="closeDetailModal"
       @edit="handleEditFromDetail" @delete="handleDelete" />
 
-    <NoteFormModal :is-open="isFormModalOpen" :note="selectedNote" @close="isFormModalOpen = false"
-      @save="handleSaveNote" />
+    <NoteFormModal :is-open="isFormModalOpen" :note="selectedNote" @close="closeFormModal" @save="handleSaveNote" />
 
     <FabNew @manual="openCreateModal" @chat="handleChatTask" iaText="Nota por Chat" manualText="Manual" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useNoteStore } from '../stores/note.store';
+import { useNoteActions } from '~/composables/useNoteActions';
 import type { Note } from '../types/note.types';
 import NoteFilters from '../components/notes/NoteFilters.vue';
 import NoteSection from '../components/notes/NoteSection.vue';
@@ -44,6 +45,16 @@ import HeaderPage from '~/components/HeaderPage.vue';
 import EmptyPage from '~/components/EmptyPage.vue';
 
 const noteStore = useNoteStore();
+const route = useRoute();
+const router = useRouter();
+
+const {
+  openNewNote,
+  openEditNote,
+  openViewNote,
+  handleDelete: deleteNoteAction,
+  handleSaveNote: saveNoteAction
+} = useNoteActions();
 
 // State
 const searchQuery = ref('');
@@ -55,7 +66,12 @@ const isFormModalOpen = ref(false);
 // Load data
 onMounted(async () => {
   await noteStore.fetchNotes();
+  handleQueryActions();
 });
+
+watch(() => route.query, () => {
+  handleQueryActions();
+}, { deep: true });
 
 // Computed
 const filteredNotes = computed(() => {
@@ -68,9 +84,46 @@ const filteredNotes = computed(() => {
 });
 
 // Handlers
-const openCreateModal = () => {
-  selectedNote.value = null;
-  isFormModalOpen.value = true;
+const handleQueryActions = () => {
+  if (route.query.new !== undefined) {
+    selectedNote.value = null;
+    isFormModalOpen.value = true;
+  } else if (route.query.edit) {
+    const note = noteStore.notes.find(n => String(n.id) === String(route.query.edit));
+    if (note) {
+      selectedNote.value = { ...note };
+      isFormModalOpen.value = true;
+    } else if (noteStore.notes.length > 0) {
+      closeFormModal();
+    }
+  } else if (route.query.view) {
+    const note = noteStore.notes.find(n => String(n.id) === String(route.query.view));
+    if (note) {
+      selectedNote.value = note;
+      isDetailModalOpen.value = true;
+    } else if (noteStore.notes.length > 0) {
+      closeDetailModal();
+    }
+  } else {
+    isFormModalOpen.value = false;
+    selectedNote.value = null;
+    isDetailModalOpen.value = false;
+  }
+};
+
+const openCreateModal = () => openNewNote();
+
+const closeFormModal = () => {
+  const query = { ...route.query };
+  delete query.new;
+  delete query.edit;
+  router.push({ query });
+};
+
+const closeDetailModal = () => {
+  const query = { ...route.query };
+  delete query.view;
+  router.push({ query });
 };
 
 // Event Handlers
@@ -83,34 +136,23 @@ const handleChatTask = () => {
   });
 };
 
-const handlePreview = (note: Note) => {
-  selectedNote.value = note;
-  isDetailModalOpen.value = true;
-};
-
-const handleEdit = (note: Note) => {
-  selectedNote.value = note;
-  isFormModalOpen.value = true;
-};
+const handlePreview = (note: Note) => openViewNote(note.id);
+const handleEdit = (note: Note) => openEditNote(note.id);
 
 const handleEditFromDetail = (note: Note) => {
-  isDetailModalOpen.value = false;
-  handleEdit(note);
+  openEditNote(note.id);
 };
 
 const handleSaveNote = async (formData: any) => {
-  if (selectedNote.value) {
-    await noteStore.updateNote(selectedNote.value.id, formData);
-  } else {
-    await noteStore.addNote(formData);
-  }
-  isFormModalOpen.value = false;
+  await saveNoteAction(formData, selectedNote.value);
+  closeFormModal();
 };
 
 const handleDelete = async (note: Note) => {
-  if (confirm('¿Estás seguro de que deseas eliminar esta nota?')) {
-    await noteStore.deleteNote(note.id);
+  const deleted = await deleteNoteAction(note.id);
+  if (deleted) {
     isDetailModalOpen.value = false;
+    closeDetailModal();
   }
 };
 </script>
