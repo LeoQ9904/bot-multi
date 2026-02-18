@@ -29,8 +29,7 @@
 
         <!-- Right Column: Tasks -->
         <div class="tasks-column">
-          <DashboardRecentTasks :tasks="todaysTasks" @start="handleStartTask" @stop="handleStopTask"
-            @create="handleCreateTask" @preview="handlePreviewTask" @complete="handleCompleteTask" />
+          <DashboardRecentTasks :tasks="todaysTasks" />
         </div>
       </div>
 
@@ -126,13 +125,8 @@ const toggleTheme = () => {
   // Implementation specific to how theme is handled globally
 };
 
-const handleStartTask = (task: any) => taskStore.startTask(task.id);
-const handleStopTask = (task: any) => taskStore.stopTask(task.id);
-const handleCreateTask = () => navigateTo('/task');
-const handlePreviewTask = (task: any) => navigateTo('/task'); // Ideally open modal? For now Nav
 const handleCreateNote = () => navigateTo('/notes'); // Ideally open modal
 const handlePreviewNote = (note: any) => navigateTo('/notes'); // Ideally open modal
-const handleCompleteTask = (task: any) => taskStore.completeTask(task.id);
 
 </script>
 

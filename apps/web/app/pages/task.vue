@@ -32,10 +32,9 @@
 
       <div class="sections-container pb-32">
         <TaskSection v-for="(group, sectionName) in filteredGroupedTasks" :key="sectionName"
-          :title="String(sectionName)" :tasks="group" @start="taskStore.startTask($event.id)"
-          @stop="taskStore.stopTask($event.id)" @complete="taskStore.completeTask($event.id)"
-          @cancel="taskStore.cancelTask($event.id)" @edit="handleEditClick" @more="handleMoreActions"
-          @preview="handlePreviewClick" />
+          :title="String(sectionName)" :tasks="group" @start="startTask($event.id)" @stop="stopTask($event.id)"
+          @complete="completeTask($event.id)" @cancel="cancelTask($event.id)" @edit="handleEditClick"
+          @more="handleMoreActions" @preview="handlePreviewClick" />
       </div>
 
       <!-- Enhanced empty state -->
@@ -98,7 +97,7 @@
 
     <TaskFormModal :is-open="isModalOpen" :initial-data="editingTask" @close="closeModal" @save="handleSaveTask" />
     <TaskDetailModal :is-open="isPreviewOpen" :task="previewingTask" @close="closePreview" @edit="handleEditFromPreview"
-      @start="taskStore.startTask($event.id)" @stop="taskStore.stopTask($event.id)"
+      @start="startTask($event.id)" @stop="stopTask($event.id)"
       @complete="handleActionAndClosePreview('complete', $event)"
       @cancel="handleActionAndClosePreview('cancel', $event)" @more="handleMoreActions" />
   </div>
@@ -108,6 +107,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore } from '~/stores/task.store';
+import { useTaskActions } from '~/composables/useTaskActions';
 import TaskFilters from '~/components/tasks/TaskFilters.vue';
 import TaskSection from '~/components/tasks/TaskSection.vue';
 import TaskFormModal from '~/components/tasks/TaskFormModal.vue';
@@ -121,6 +121,18 @@ import { es } from 'date-fns/locale';
 const taskStore = useTaskStore();
 const route = useRoute();
 const router = useRouter();
+
+const {
+  openNewTask,
+  openEditTask,
+  openViewTask,
+  handleStart: startTask,
+  handleStop: stopTask,
+  handleComplete: completeTask,
+  handleCancel: cancelTask,
+  handleDelete: deleteTask,
+  handleSaveTask: saveTaskAction
+} = useTaskActions();
 
 const activeSelectDay = ref<Date | null>();
 const isModalOpen = ref(false);
@@ -256,12 +268,11 @@ const toggleFilters = () => {
 };
 
 const handleChatTask = () => { navigateTo({ path: '/chat', query: { initialMessage: 'Hola! Ayúdame con una tarea: ' } }); };
-const handleManualTask = () => { router.push({ query: { ...route.query, new: '' } }); };
-const handleEditClick = (task: any) => { router.push({ query: { ...route.query, edit: task.id } }); };
+const handleManualTask = () => openNewTask();
+const handleEditClick = (task: any) => openEditTask(task.id);
 
 const handleSaveTask = async (formData: any) => {
-  if (editingTask.value) await taskStore.updateTask(editingTask.value.id, formData);
-  else await taskStore.addTask(formData);
+  await saveTaskAction(formData, editingTask.value);
   closeModal();
 };
 
@@ -272,21 +283,19 @@ const closeModal = () => {
   router.push({ query });
 };
 
-const handlePreviewClick = (task: any) => { router.push({ query: { ...route.query, view: task.id, edit: null } }); previewingTask.value = task; isPreviewOpen.value = true; };
+const handlePreviewClick = (task: any) => openViewTask(task.id);
 const closePreview = () => { isPreviewOpen.value = false; previewingTask.value = null; };
-const handleEditFromPreview = (task: any) => { router.push({ query: { ...route.query, view: null, edit: task.id } }); isPreviewOpen.value = false; };
+const handleEditFromPreview = (task: any) => openEditTask(task.id);
 
 const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: any) => {
-  if (action === 'complete') await taskStore.completeTask(task.id);
-  else if (action === 'cancel') await taskStore.cancelTask(task.id);
+  if (action === 'complete') await completeTask(task.id);
+  else if (action === 'cancel') await cancelTask(task.id);
   closePreview();
 };
 
 const handleMoreActions = async (task: any) => {
-  if (confirm('¿Deseas eliminar esta tarea?')) {
-    await taskStore.deleteTask(task.id);
-    closePreview();
-  }
+  const deleted = await deleteTask(task.id);
+  if (deleted) closePreview();
 };
 
 const handleDateClick = (date: Date) => {

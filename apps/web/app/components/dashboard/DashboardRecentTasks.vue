@@ -22,7 +22,7 @@
 
         <div class="tasks-grid">
             <!-- Main Focus Task -->
-            <div v-if="mainFocusTask" class="main-focus-card glass-panel" @click="$emit('preview', mainFocusTask)">
+            <div v-if="mainFocusTask" class="main-focus-card glass-panel" @click="openViewTask(mainFocusTask.id)">
                 <div class="focus-glow" :class="getProjectColorClass(mainFocusTask.project)"></div>
 
                 <div class="focus-content">
@@ -58,21 +58,21 @@
 
                     <div class="focus-actions">
                         <button v-if="mainFocusTask.status === 'pending'" class="btn-primary start-btn"
-                            @click.stop="$emit('start', mainFocusTask)">
+                            @click.stop="handleStart(mainFocusTask.id)">
                             <span class="material-symbols-outlined">play_arrow</span>
                             <span>Empezar ahora</span>
                         </button>
                         <button v-else-if="mainFocusTask.status === 'in-progress'" class="btn-primary pause-btn"
-                            @click.stop="$emit('stop', mainFocusTask)">
+                            @click.stop="handleStop(mainFocusTask.id)">
                             <span class="material-symbols-outlined">pause</span>
                             <span>Pausar</span>
                         </button>
                         <button v-if="mainFocusTask.status !== 'completed'" class="action-btn-mini complete"
-                            @click="$emit('complete', mainFocusTask)" title="Completar">
+                            @click.stop="handleComplete(mainFocusTask.id)" title="Completar">
                             <span class="material-symbols-outlined">check</span>
                         </button>
 
-                        <button class="btn-secondary" @click.stop="$emit('preview', mainFocusTask)">
+                        <button class="btn-secondary" @click.stop="openViewTask(mainFocusTask.id)">
                             <span class="material-symbols-outlined">visibility</span>
                         </button>
                     </div>
@@ -94,61 +94,9 @@
             </div>
 
             <!-- Secondary Task Cards -->
-            <div v-for="task in secondaryTasks" :key="task.id" class="secondary-task-card glass-panel"
-                :class="{ 'task-completed': task.status === 'completed' }" @click="$emit('preview', task)">
-
-                <div class="task-color-bar" :style="{ backgroundColor: getTagColor(task.tagColor) }"></div>
-
-                <div class="secondary-header">
-                    <div class="task-info-left">
-                        <div class="task-icon-wrapper" :class="getProjectColorClass(task.project)">
-                            <span class="material-symbols-outlined">{{ getCategoryIcon(task.category) }}</span>
-                        </div>
-                        <div class="task-text-info">
-                            <h5 class="secondary-title" :class="{ 'completed': task.status === 'completed' }">
-                                {{ task.title }}
-                            </h5>
-                            <div class="task-meta">
-                                <span v-if="task.project" class="meta-item project">{{ task.project }}</span>
-                                <span class="meta-separator" v-if="task.project && task.scheduledAt">•</span>
-                                <span v-if="task.scheduledAt" class="meta-item time">
-                                    {{ formatTime(task.scheduledAt) }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="secondary-actions" @click.stop>
-                        <button v-if="task.status === 'pending'" class="action-btn-mini start"
-                            @click="$emit('start', task)" title="Iniciar">
-                            <span class="material-symbols-outlined">play_arrow</span>
-                        </button>
-                        <button v-else-if="task.status === 'in-progress'" class="action-btn-mini pause"
-                            @click="$emit('stop', task)" title="Pausar">
-                            <span class="material-symbols-outlined">pause</span>
-                        </button>
-                        <button v-if="task.status !== 'completed'" class="action-btn-mini complete"
-                            @click="$emit('complete', task)" title="Completar">
-                            <span class="material-symbols-outlined">check</span>
-                        </button>
-                    </div>
-                </div>
-
-                <p class="secondary-desc" v-if="task.description">{{ task.description }}</p>
-
-                <div class="task-footer">
-                    <div class="footer-badges">
-                        <span class="status-badge" :class="task.status">
-                            <span class="material-symbols-outlined">{{ getStatusIcon(task.status) }}</span>
-                            {{ getStatusLabel(task.status) }}
-                        </span>
-                        <span v-if="task.duration" class="duration-badge">
-                            <span class="material-symbols-outlined">timer</span>
-                            {{ task.duration }}
-                        </span>
-                    </div>
-                </div>
-            </div>
+            <TaskCard v-for="task in secondaryTasks" :key="task.id" :task="task" @start="handleStart(task.id)"
+                @stop="handleStop(task.id)" @complete="handleComplete(task.id)" @cancel="handleCancel(task.id)"
+                @edit="openEditTask(task.id)" @more="handleDelete(task.id)" @preview="openViewTask(task.id)" />
 
             <!-- Empty State -->
             <div v-if="!mainFocusTask && secondaryTasks.length === 0" class="empty-dashboard-tasks glass-panel">
@@ -157,7 +105,7 @@
                 </div>
                 <h4 class="empty-title">¡Todo listo por hoy!</h4>
                 <p class="empty-desc">No tienes tareas pendientes. Aprovecha para planificar o descansar.</p>
-                <button class="btn-primary" @click="$emit('create')">
+                <button class="btn-primary" @click="openNewTask">
                     <span class="material-symbols-outlined">add</span>
                     <span>Crear nueva tarea</span>
                 </button>
@@ -169,12 +117,26 @@
 <script setup lang="ts">
 import type { Task } from '~/types/task.types';
 import { computed } from 'vue';
+import { useTaskActions } from '~/composables/useTaskActions';
+import TaskCard from '~/components/tasks/TaskCard.vue';
+
+const {
+    openNewTask,
+    openEditTask,
+    openViewTask,
+    handleStart,
+    handleStop,
+    handleComplete,
+    handleCancel,
+    handleDelete
+} = useTaskActions();
 
 const props = defineProps<{
     tasks: Task[];
 }>();
 
-defineEmits(['start', 'stop', 'preview', 'create', 'complete']);
+// Emits are no longer needed for task actions as they are handled internally
+// defineEmits(['start', 'stop', 'preview', 'create', 'complete']);
 
 const mainFocusTask = computed(() => {
     const inProgress = props.tasks.find(t => t.status === 'in-progress');
@@ -204,10 +166,12 @@ const totalTimeToday = computed(() => {
     const total = props.tasks.reduce((acc, task) => {
         if (!task.duration) return acc;
         const match = task.duration.match(/(\d+)\s*(h|min)/i);
-        if (!match) return acc;
-        const value = parseInt(match[1]);
-        const unit = match[2].toLowerCase();
-        return acc + (unit === 'h' ? value * 60 : value);
+        if (match && match[1] && match[2]) {
+            const value = parseInt(match[1]);
+            const unit = match[2].toLowerCase();
+            return acc + (unit === 'h' ? value * 60 : value);
+        }
+        return acc;
     }, 0);
 
     const hours = Math.floor(total / 60);
@@ -215,28 +179,7 @@ const totalTimeToday = computed(() => {
     return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
 });
 
-const getCategoryIcon = (category?: string) => {
-    const icons: Record<string, string> = {
-        'Trabajo': 'work',
-        'Sprint 6': 'sprint',
-        'Sprint 7': 'sprint',
-        'Investigación': 'science',
-        'personal': 'person',
-        'health': 'fitness_center'
-    };
-    return icons[category || ''] || 'task';
-};
-
-const getProjectIcon = (project?: string) => {
-    const icons: Record<string, string> = {
-        'Aether': 'wb_twilight',
-        'Nebula': 'cloud',
-        'default': 'folder'
-    };
-    return icons[project || ''] || icons.default;
-};
-
-const getProjectColorClass = (project?: string) => {
+const getProjectColorClass = (project?: string | null) => {
     const colors: Record<string, string> = {
         'Aether': 'project-aether',
         'Nebula': 'project-nebula'
@@ -282,9 +225,30 @@ const getTagColor = (colorName: string) => {
     return colors[colorName] || colorName || '#9ca3af';
 };
 
-const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+const formatTime = (ts: number) => {
+    if (!ts) return '';
+    return new Date(ts).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+};
+
+const getCategoryIcon = (category?: string) => {
+    const icons: Record<string, string> = {
+        'Trabajo': 'work',
+        'Sprint 6': 'sprint',
+        'Sprint 7': 'sprint',
+        'Investigación': 'science',
+        'personal': 'person',
+        'health': 'fitness_center'
+    };
+    return icons[category || ''] || 'task';
+};
+
+const getProjectIcon = (project?: string | null) => {
+    const icons: Record<string, string> = {
+        'Aether': 'wb_twilight',
+        'Nebula': 'cloud',
+        'default': 'folder'
+    };
+    return icons[project || ''] || icons.default;
 };
 </script>
 
@@ -476,24 +440,6 @@ const formatTime = (dateString: string) => {
     font-size: 0.95rem;
 }
 
-.status-pending {
-    background: rgba(148, 163, 184, 0.15);
-    color: #94a3b8;
-    border: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.status-in-progress {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
-    border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.status-completed {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
-    border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
 .project-tag {
     font-size: 0.75rem;
     font-weight: 600;
@@ -660,19 +606,6 @@ const formatTime = (dateString: string) => {
     font-weight: 600;
     color: var(--text-tertiary);
     text-transform: uppercase;
-}
-
-/* Secondary Task Cards */
-.secondary-task-card {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1.25rem;
-    justify-content: space-between;
-}
-
-.task-completed {
-    opacity: 0.6;
 }
 
 .task-color-bar {
@@ -861,38 +794,6 @@ const formatTime = (dateString: string) => {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
-}
-
-.status-badge,
-.duration-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.7rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 100px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.status-badge .material-symbols-outlined,
-.duration-badge .material-symbols-outlined {
-    font-size: 0.85rem;
-}
-
-.status-badge.pending {
-    background: rgba(148, 163, 184, 0.1);
-    color: #94a3b8;
-}
-
-.status-badge.in-progress {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-}
-
-.status-badge.completed {
-    background: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
 }
 
 .duration-badge {
