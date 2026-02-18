@@ -3,7 +3,7 @@ import type { Note } from '../types/note.types';
 import { useNoteService } from '../services/note.service';
 import { useFirebaseAuth } from '~/composables/useAuth';
 
-export const DEFAULT_TAG_COLORS = ['#0000FF', '#800080', '#2ECC71', '#F39C12', '#E74C3C', '#000000', '#FFFFFF', '#FF0000', '#00FF00'];
+export const DEFAULT_TAG_COLORS = ['#0000FF', '#800080', '#2ECC71', '#F39C12', '#E74C3C', '#FF0000', '#00FF00'];
 
 export const useNoteStore = defineStore('notes', {
     state: () => ({

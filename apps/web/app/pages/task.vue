@@ -386,6 +386,9 @@ const recomendationAI = async () => {
       Retorne en formato html con sobreado sobre los datos que consideres importantes, como los titulos de las tareas.
       **IMPORTANT**: El horario de scheduledAt es en formato toISOString(). Es importante que conviertas las horas a formato UTC-5 Bogota.
       **IMPORTANT**: No retornes el formato de hora ejemplo 9:00 a.m (UTC-5), no es necesario, solo retornar 9:00 a.m.
+      **IMPORTANT**: Si el usuario no cuenta con tareas retorne una frease sobre consejos de productividad, etc.
+      **IMPORTANT**: No retornes más de 150 caracteres.
+      **IMPORTANT**: No retornes listado de Opciones.
     `;
     const token = await user.value?.getIdToken();
     const response = await IaService.chat(prompt, 'recomendation', token || '');
