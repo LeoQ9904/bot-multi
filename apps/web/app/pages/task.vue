@@ -9,7 +9,7 @@
       <div class="header-stats-row">
         <div class="quick-dates custom-scrollbar">
           <button v-for="day in weekDays" :key="day.date.getTime()" class="date-btn"
-            :class="{ 'active': activeSelectDay === day.date, 'has-tasks': day.hasTasks }"
+            :class="{ 'active': activeSelectDay && isSameDay(activeSelectDay, day.date), 'has-tasks': day.hasTasks }"
             @click="handleDateClick(day.date)">
             <span class="day-label">{{ day.label }}</span>
             <span class="day-number">{{ day.number }}</span>
@@ -105,7 +105,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore } from '~/stores/task.store';
 import TaskFilters from '~/components/tasks/TaskFilters.vue';
 import TaskSection from '~/components/tasks/TaskSection.vue';
@@ -118,10 +119,24 @@ import { isBefore, isPast, isSameWeek, isThisWeek, isToday, isTomorrow, isYester
 import { es } from 'date-fns/locale';
 
 const taskStore = useTaskStore();
-const activeSelectDay = ref<Date | null>();
+const route = useRoute();
+const router = useRouter();
 
-onMounted(() => {
-  taskStore.fetchTasks();
+const activeSelectDay = ref<Date | null>();
+const isModalOpen = ref(false);
+const editingTask = ref<any>(null);
+const isPreviewOpen = ref(false);
+const previewingTask = ref<any>(null);
+const showFilters = ref(false);
+
+const activeFilter = ref({
+  type: 'all',
+  projects: [] as string[],
+  categories: [] as string[],
+  sortOrder: 'desc' as 'asc' | 'desc',
+  sortBy: 'scheduledAt' as 'createdAt' | 'scheduledAt',
+  dateRange: { start: null as string | null, end: null as string | null },
+  tags: [] as string[]
 });
 
 const weekDays = computed(() => {
@@ -143,111 +158,130 @@ const sprintProgress = computed(() => {
   return Math.round((completedTasks / taskStore.tasks.length) * 100);
 });
 
-// Modal State
-const isModalOpen = ref(false);
-const editingTask = ref<any>(null);
-const isPreviewOpen = ref(false);
-const previewingTask = ref<any>(null);
-
-// Filters
-const activeFilter = ref({
-  type: 'all',
-  projects: [] as string[],
-  categories: [] as string[],
-  sortOrder: 'desc' as 'asc' | 'desc',
-  sortBy: 'scheduledAt' as 'createdAt' | 'scheduledAt',
-  dateRange: { start: null as string | null, end: null as string | null },
-  tags: [] as string[]
-});
-
-// Derived state from store with advanced filtering/sorting logic
-const filteredGroupedTasks = computed(() => {
-  let filtered = [...taskStore.tasks];
-
-  // Filter by Projects
-  if (activeFilter.value.projects.length > 0) {
-    filtered = filtered.filter(t => t.project && activeFilter.value.projects.includes(t.project));
+// Check for 'new' or 'edit' in query
+const handleQueryActions = () => {
+  if (route.query.new !== undefined) {
+    editingTask.value = null;
+    isModalOpen.value = true;
+  } else if (route.query.edit) {
+    const task = taskStore.tasks.find(t => String(t.id) === String(route.query.edit));
+    if (task) {
+      editingTask.value = { ...task };
+      isModalOpen.value = true;
+    } else if (taskStore.tasks.length > 0) {
+      closeModal();
+    }
+  } else if (route.query.view) {
+    const task = taskStore.tasks.find(t => String(t.id) === String(route.query.view));
+    if (task) {
+      isPreviewOpen.value = true;
+      previewingTask.value = task;
+    } else if (taskStore.tasks.length > 0) {
+      closePreview();
+    }
+  } else {
+    isModalOpen.value = false;
+    editingTask.value = null;
+    isPreviewOpen.value = false;
+    previewingTask.value = null;
   }
+};
 
-  // Filter by Categories
-  if (activeFilter.value.categories.length > 0) {
-    filtered = filtered.filter(t => t.category && activeFilter.value.categories.includes(t.category));
-  }
+// Sync URL Query to Filter State
+const syncUrlToFilters = () => {
+  const query = route.query;
+  const filter = activeFilter.value;
 
-  // Filter by Date Range
-  if (activeFilter.value.dateRange.start && activeFilter.value.dateRange.end) {
-    const startTs = new Date(activeFilter.value.dateRange.start).getTime();
-    const endTs = new Date(activeFilter.value.dateRange.end).getTime();
-    filtered = filtered.filter(t =>
-      new Date(t.scheduledAt).getTime() >= startTs &&
-      new Date(t.scheduledAt).getTime() <= endTs
+  if (query.type) filter.type = query.type as string;
+  if (query.projects) filter.projects = (Array.isArray(query.projects) ? query.projects : [query.projects]) as string[];
+  if (query.categories) filter.categories = (Array.isArray(query.categories) ? query.categories : [query.categories]) as string[];
+  if (query.sortOrder) filter.sortOrder = query.sortOrder as any;
+  if (query.sortBy) filter.sortBy = query.sortBy as any;
+  if (query.start_date) filter.dateRange.start = query.start_date as string;
+  if (query.end_date) filter.dateRange.end = query.end_date as string;
+  if (query.tags) filter.tags = (Array.isArray(query.tags) ? query.tags : [query.tags]) as string[];
+  showFilters.value = query.show_filters === 'true';
+
+  if (query.start_date && query.end_date) {
+    const foundDay = weekDays.value.find(day =>
+      startOfDay(day.date).toISOString() === query.start_date &&
+      endOfDay(day.date).toISOString() === query.end_date
     );
+    activeSelectDay.value = foundDay ? foundDay.date : null;
+  } else {
+    activeSelectDay.value = null;
   }
+};
 
-  // Filter by Tags
-  if (activeFilter.value.tags.length > 0) {
-    filtered = filtered.filter(t => activeFilter.value.tags.includes(t.tagColor));
-  }
-
-  // Apply Sorting
-  filtered.sort((a, b) => {
-    const factor = activeFilter.value.sortOrder === 'desc' ? -1 : 1;
-    const sortField = activeFilter.value.sortBy;
-    return (a[sortField] - b[sortField]) * factor;
-  });
-
-  // Re-group for the sections
-  const groups: Record<string, typeof filtered> = {
-    'Hoy': [],
-    'Mañana': [],
-    'Esta Semana': [],
-    'Ayer': [],
-    'Próximamente': [],
-    'Semana pasada': [],
-    'Más antiguas': []
+// Sync Filter State to URL Query
+const syncFiltersToUrl = () => {
+  const query = { ...route.query };
+  const sync = (key: string, val: any, defaultVal?: any) => {
+    if (val && val !== defaultVal && (!Array.isArray(val) || val.length > 0)) query[key] = val;
+    else delete query[key];
   };
 
-  const dateHoy = new Date();
+  sync('type', activeFilter.value.type, 'all');
+  sync('projects', activeFilter.value.projects);
+  sync('categories', activeFilter.value.categories);
+  sync('sortOrder', activeFilter.value.sortOrder, 'desc');
+  sync('sortBy', activeFilter.value.sortBy, 'scheduledAt');
+  sync('start_date', activeFilter.value.dateRange.start);
+  sync('end_date', activeFilter.value.dateRange.end);
+  sync('tags', activeFilter.value.tags);
 
-  filtered.forEach(task => {
-    const taskTs = task.scheduledAt;
-    if (isToday(taskTs)) {
-      groups['Hoy']!.push(task);
-    } else if (isYesterday(taskTs)) {
-      groups['Ayer']!.push(task);
-    } else if (isBefore(taskTs, dateHoy.getTime()) && isSameWeek(taskTs, subWeeks(dateHoy.getTime(), 1))) {
-      groups['Semana pasada']!.push(task);
-    } else if (isTomorrow(taskTs)) {
-      groups['Mañana']!.push(task);
-    } else if (isThisWeek(taskTs)) {
-      groups['Esta Semana']!.push(task);
-    } else if (isPast(taskTs)) {
-      groups['Más antiguas']!.push(task);
-    }
-  });
+  if (showFilters.value) query.show_filters = 'true';
+  else delete query.show_filters;
 
-  return Object.fromEntries(
-    Object.entries(groups).filter(([_, group]) => group.length > 0)
-  );
+  if (JSON.stringify(query) !== JSON.stringify(route.query)) {
+    router.replace({ query });
+  }
+};
+
+onMounted(async () => {
+  await taskStore.fetchTasks();
+  syncUrlToFilters();
+  handleQueryActions();
 });
 
+watch(activeFilter, () => syncFiltersToUrl(), { deep: true });
+watch(showFilters, () => syncFiltersToUrl());
+watch(() => route.query, () => {
+  syncUrlToFilters();
+  handleQueryActions();
+}, { deep: true });
+
+const toggleFilters = () => {
+  showFilters.value = !showFilters.value;
+};
+
 const handleChatTask = () => { navigateTo({ path: '/chat', query: { initialMessage: 'Hola! Ayúdame con una tarea: ' } }); };
-const handleManualTask = () => { editingTask.value = null; isModalOpen.value = true; };
-const handleEditClick = (task: any) => { editingTask.value = { ...task }; isModalOpen.value = true; };
+const handleManualTask = () => { router.push({ query: { ...route.query, new: '' } }); };
+const handleEditClick = (task: any) => { router.push({ query: { ...route.query, edit: task.id } }); };
+
 const handleSaveTask = async (formData: any) => {
   if (editingTask.value) await taskStore.updateTask(editingTask.value.id, formData);
   else await taskStore.addTask(formData);
   closeModal();
 };
-const closeModal = () => { isModalOpen.value = false; editingTask.value = null; };
-const handlePreviewClick = (task: any) => { previewingTask.value = task; isPreviewOpen.value = true; };
+
+const closeModal = () => {
+  const query = { ...route.query };
+  delete query.new;
+  delete query.edit;
+  router.push({ query });
+};
+
+const handlePreviewClick = (task: any) => { router.push({ query: { ...route.query, view: task.id, edit: null } }); previewingTask.value = task; isPreviewOpen.value = true; };
 const closePreview = () => { isPreviewOpen.value = false; previewingTask.value = null; };
-const handleEditFromPreview = (task: any) => { editingTask.value = { ...task }; isPreviewOpen.value = false; isModalOpen.value = true; };
+const handleEditFromPreview = (task: any) => { router.push({ query: { ...route.query, view: null, edit: task.id } }); isPreviewOpen.value = false; };
+
 const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: any) => {
   if (action === 'complete') await taskStore.completeTask(task.id);
   else if (action === 'cancel') await taskStore.cancelTask(task.id);
   closePreview();
 };
+
 const handleMoreActions = async (task: any) => {
   if (confirm('¿Deseas eliminar esta tarea?')) {
     await taskStore.deleteTask(task.id);
@@ -256,7 +290,7 @@ const handleMoreActions = async (task: any) => {
 };
 
 const handleDateClick = (date: Date) => {
-  if (activeSelectDay.value === date) {
+  if (activeSelectDay.value && isSameDay(activeSelectDay.value, date)) {
     activeSelectDay.value = null;
     activeFilter.value.dateRange.start = null;
     activeFilter.value.dateRange.end = null;
@@ -266,6 +300,37 @@ const handleDateClick = (date: Date) => {
   activeFilter.value.dateRange.start = startOfDay(date).toISOString();
   activeFilter.value.dateRange.end = endOfDay(date).toISOString();
 };
+
+const filteredGroupedTasks = computed(() => {
+  let filtered = [...taskStore.tasks];
+  if (activeFilter.value.projects.length > 0) filtered = filtered.filter(t => t.project && activeFilter.value.projects.includes(t.project));
+  if (activeFilter.value.categories.length > 0) filtered = filtered.filter(t => t.category && activeFilter.value.categories.includes(t.category));
+  if (activeFilter.value.dateRange.start && activeFilter.value.dateRange.end) {
+    const startTs = new Date(activeFilter.value.dateRange.start).getTime();
+    const endTs = new Date(activeFilter.value.dateRange.end).getTime();
+    filtered = filtered.filter(t => new Date(t.scheduledAt).getTime() >= startTs && new Date(t.scheduledAt).getTime() <= endTs);
+  }
+  if (activeFilter.value.tags.length > 0) filtered = filtered.filter(t => activeFilter.value.tags.includes(t.tagColor));
+
+  filtered.sort((a, b) => {
+    const factor = activeFilter.value.sortOrder === 'desc' ? -1 : 1;
+    const sortField = activeFilter.value.sortBy;
+    return (a[sortField] - b[sortField]) * factor;
+  });
+
+  const groups: Record<string, typeof filtered> = { 'Hoy': [], 'Mañana': [], 'Esta Semana': [], 'Ayer': [], 'Próximamente': [], 'Semana pasada': [], 'Más antiguas': [] };
+  const dateHoy = new Date();
+  filtered.forEach(task => {
+    const taskTs = task.scheduledAt;
+    if (isToday(taskTs)) groups['Hoy']!.push(task);
+    else if (isYesterday(taskTs)) groups['Ayer']!.push(task);
+    else if (isBefore(taskTs, dateHoy.getTime()) && isSameWeek(taskTs, subWeeks(dateHoy.getTime(), 1))) groups['Semana pasada']!.push(task);
+    else if (isTomorrow(taskTs)) groups['Mañana']!.push(task);
+    else if (isThisWeek(taskTs)) groups['Esta Semana']!.push(task);
+    else if (isPast(taskTs)) groups['Más antiguas']!.push(task);
+  });
+  return Object.fromEntries(Object.entries(groups).filter(([_, group]) => group.length > 0));
+});
 </script>
 
 <style scoped>
@@ -441,10 +506,24 @@ const handleDateClick = (date: Date) => {
   box-shadow: 0 0 12px var(--glow);
 }
 
+.header-container-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
 .filters-wrapper {
-  padding: 0 2rem 1rem 2rem;
-  border-bottom: 1px solid var(--glass-border);
-  margin-bottom: 1rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
 }
 
 /* Floating Actions */
