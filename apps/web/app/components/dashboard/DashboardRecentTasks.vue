@@ -14,10 +14,16 @@
                     </span>
                 </div>
             </div>
-            <NuxtLink to="/task" class="view-all-btn">
-                <span>Ver todas</span>
-                <span class="material-symbols-outlined">arrow_forward</span>
-            </NuxtLink>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <NuxtLink to="/task?new" class="btn-text" style="text-decoration: none;">
+                    <span class="material-symbols-outlined">add</span>
+                    Nueva tarea
+                </NuxtLink>
+                <NuxtLink to="/task" class="view-all-btn">
+                    <span>Ver todas</span>
+                    <span class="material-symbols-outlined">arrow_forward</span>
+                </NuxtLink>
+            </div>
         </div>
 
         <div class="tasks-grid">
@@ -842,6 +848,26 @@ const getProjectIcon = (project?: string | null) => {
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 16px -4px var(--glow);
+}
+
+.btn-text {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: none;
+    color: var(--accent-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.btn-text:hover {
+    background: rgba(var(--accent-primary-rgb), 0.1);
+    background: rgba(102, 126, 234, 0.1);
 }
 
 /* Mobile: always show actions */
