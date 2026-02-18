@@ -1,76 +1,66 @@
 <template>
-    <div class="task-card" :class="[`status-${task.status}`]">
-        <div class="task-info">
-            <span class="tag-dot"
-                :style="task.tagColor.startsWith('#') ? { backgroundColor: task.tagColor } : { backgroundColor: `var(--accent-${task.tagColor})` }"></span>
-            <div class="task-text">
-                <div class="title-row">
-                    <h3 class="task-title">{{ task.title }}</h3>
-                    <div class="title-actions">
-                        <span v-if="task.status !== 'pending'" class="status-badge" :class="task.status">
-                            {{ getStatusLabel(task.status) }}
-                        </span>
-                    </div>
+    <div class="task-card" :class="[`status-${task.status}`]" :style="`--glow-color: ${glowColor}`">
+        <div class="card-header">
+            <div class="priority-info">
+                <span class="priority-label" :class="priorityClass">{{ priorityLabel }}</span>
+                <div class="priority-bolts">
+                    <span v-for="i in 3" :key="i" class="material-symbols-outlined bolt-icon"
+                        :class="{ 'font-fill': i <= task.priority, 'active': i <= task.priority }">
+                        bolt
+                    </span>
                 </div>
-                <div class="task-subtext">
-                    <span v-if="task.category" class="task-category">{{ task.category }}</span>
-                    <span v-if="task.project" class="task-project">Proyecto: {{ task.project }}</span>
-                </div>
+            </div>
+            <span class="scheduled-time">{{ formatTime(task.scheduledAt) }}</span>
+        </div>
+
+        <div class="card-content">
+            <h3 class="task-title">{{ task.title }}</h3>
+            <div class="task-tags">
+                <span v-if="task.project" class="task-tag project-tag">{{ task.project }}</span>
+                <span v-if="task.category" class="task-tag category-tag">{{ task.category }}</span>
             </div>
         </div>
 
-        <div class="task-meta">
-            <div class="priority-badges">
-                <span v-for="i in 3" :key="i" class="material-symbols-outlined bolt-icon"
-                    :class="{ filled: i <= task.priority }">
-                    bolt
-                </span>
-            </div>
-            <div class="task-duration">
+        <!-- Quick Actions Bar (Hover) -->
+        <div class="quick-actions-bar">
+            <button v-if="task.status === 'in-progress'" class="action-btn pause" @click.stop="$emit('stop', task)"
+                title="Pausar">
+                <span class="material-symbols-outlined">pause</span>
+            </button>
+            <button v-else class="action-btn play" @click.stop="$emit('start', task)" title="Iniciar">
+                <span class="material-symbols-outlined font-fill">play_arrow</span>
+            </button>
+            <button class="action-btn check" @click.stop="$emit('complete', task)" title="Terminar">
+                <span class="material-symbols-outlined">check</span>
+            </button>
+            <button class="action-btn delete" @click.stop="$emit('more', task)" title="Eliminar">
+                <span class="material-symbols-outlined">delete</span>
+            </button>
+            <button class="action-btn edit" @click.stop="$emit('edit', task)" title="Editar">
+                <span class="material-symbols-outlined">edit</span>
+            </button>
+            <button class="action-btn preview" @click.stop="$emit('preview', task)" title="Previsualizar">
+                <span class="material-symbols-outlined">visibility</span>
+            </button>
+        </div>
+
+        <div class="card-footer">
+            <div class="duration-info">
                 <span class="material-symbols-outlined">schedule</span>
-                <span>{{ task.duration }}</span>
-                <span class="time-divider" v-if="task.scheduledAt">|</span>
-                <span v-if="task.scheduledAt" class="scheduled-time">
-                    {{ formatTime(task.scheduledAt) }}
-                </span>
+                <span class="duration-text">{{ task.duration }} est.</span>
             </div>
-        </div>
-
-        <!-- Hover Actions -->
-        <div class="task-actions-overlay">
-            <div class="actions-container">
-                <button v-if="task.status === 'in-progress'" class="action-btn-small stop-btn"
-                    @click.stop="$emit('stop', task)">
-                    <span class="material-symbols-outlined">pause_circle</span>
-                    <span class="not-view-text-movil">Pausar</span>
+            <div class="footer-actions">
+                <button class="icon-btn" @click.stop="$emit('edit', task)">
+                    <span>{{ statusLabel }}</span>
                 </button>
-                <button v-else class="action-btn-small start-btn" @click.stop="$emit('start', task)">
-                    <span class="material-symbols-outlined">play_circle</span>
-                    <span class="not-view-text-movil">Iniciar</span>
-                </button>
-
-                <button class="action-btn-small complete-btn" @click.stop="$emit('complete', task)">
-                    <span class="material-symbols-outlined">check_circle</span>
-                    <span class="not-view-text-movil">Terminar</span>
-                </button>
-
-                <div class="" style="display: flex; gap: 0.5rem;">
-                    <button class="more-btn" @click.stop="$emit('edit', task)">
-                        <span class="material-symbols-outlined">edit</span>
-                    </button>
-                    <button class="preview-btn-inline" @click.stop="$emit('preview', task)" title="Ver detalles">
-                        <span class="material-symbols-outlined">visibility</span>
-                    </button>
-                    <button class="preview-btn-inline" @click.stop="$emit('more', task)" title="Eliminar">
-                        <span class="material-symbols-outlined">delete</span>
-                    </button>
-                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 const props = defineProps<{
     task: {
         id: number | string;
@@ -94,406 +84,316 @@ const formatTime = (ts: number) => {
     });
 };
 
-const getStatusLabel = (status: string) => {
-    switch (status) {
-        case 'in-progress': return 'Tarea Iniciada';
-        case 'completed': return 'Realizada';
-        case 'cancelled': return 'Cancelada';
-        default: return '';
-    }
-};
+const priorityLabel = computed(() => {
+    if (props.task.priority === 3) return 'Alta Prioridad';
+    if (props.task.priority === 2) return 'Media Prioridad';
+    return 'Baja Prioridad';
+});
+
+const priorityClass = computed(() => {
+    if (props.task.priority === 3) return 'priority-high';
+    if (props.task.priority === 2) return 'priority-medium';
+    return 'priority-low';
+});
+
+const glowColor = computed(() => {
+    if (props.task.priority === 3) return 'rgba(248, 113, 113, 0.2)'; // --accent-red
+    if (props.task.priority === 2) return 'rgba(99, 102, 241, 0.2)'; // --accent-primary
+    return 'rgba(52, 211, 153, 0.1)'; // --accent-emerald
+});
+
+const statusLabel = computed(() => {
+    if (props.task.status === 'pending') return 'Pendiente';
+    if (props.task.status === 'in-progress') return 'En Progreso';
+    if (props.task.status === 'completed') return 'Completado';
+    return 'Cancelado';
+});
 
 defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
 </script>
 
 <style scoped>
-.title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.25rem;
-}
-
-.status-badge {
-    font-size: 0.65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    padding: 2px 8px;
-    border-radius: 6px;
-    letter-spacing: 0.05em;
-}
-
-.status-badge.in-progress {
-    background: var(--glow);
-    color: var(--accent-primary);
-}
-
-.status-badge.completed {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
-}
-
-.status-badge.cancelled {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-}
-
-.task-card.status-completed,
-.task-card.status-cancelled {
-    opacity: 0.6;
-}
-
-.task-card.status-in-progress {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 20px var(--glow);
-    transform: scale(1.01);
-}
-
-.stop-btn {
-    background: #ef4444 !important;
-    color: white !important;
-}
-
-.complete-btn {
-    background: #10b981 !important;
-    color: white !important;
-}
-
-.cancel-btn {
-    background: var(--bg-tertiary) !important;
-    border-color: #ef4444 !important;
-    color: #ef4444 !important;
-}
-
-.cancel-btn:hover {
-    background: #ef4444 !important;
-    color: white !important;
-}
-
 .task-card {
     position: relative;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.25rem;
     background: var(--bg-secondary);
     border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    height: 9rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
     overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .task-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px var(--shadow);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px -10px var(--glow-color);
     border-color: var(--accent-primary);
 }
 
-.task-info {
+.card-header {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
 }
 
-.status-indicator {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.status-indicator.red {
-    background: #ef4444;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
-}
-
-.status-indicator.amber {
-    background: #f59e0b;
-}
-
-.status-indicator.emerald {
-    background: #10b981;
-}
-
-.task-subtext {
+.priority-info {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 0.25rem;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
-.task-category {
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: var(--accent-primary);
-    background: var(--glow);
-    padding: 1px 6px;
-    border-radius: 4px;
+.priority-label {
+    font-size: 0.625rem;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.task-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-    word-break: break-word;
+.priority-high {
+    color: var(--accent-red);
 }
 
-.task-project {
-    font-size: 0.75rem;
+.priority-medium {
+    color: var(--accent-primary);
+}
+
+.priority-low {
     color: var(--text-tertiary);
-    word-break: break-word;
 }
 
-.task-meta {
+.priority-bolts {
     display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}
-
-.priority-badges {
-    display: flex;
-    color: #fbbf24;
+    gap: 2px;
 }
 
 .bolt-icon {
-    font-size: 1.1rem;
-    opacity: 0.3;
+    font-size: 0.875rem;
+    color: var(--bg-tertiary);
+    font-variation-settings: 'FILL' 0;
 }
 
-.bolt-icon.filled {
-    opacity: 1;
+.bolt-icon.active {
+    color: var(--accent-amber);
+}
+
+.font-fill {
     font-variation-settings: 'FILL' 1;
 }
 
-.task-duration {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+.scheduled-time {
+    font-size: 0.6875rem;
     color: var(--text-tertiary);
-    font-size: 0.85rem;
     font-weight: 500;
 }
 
-.task-duration .material-symbols-outlined {
-    font-size: 1rem;
+.card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
-.time-divider {
-    margin: 0 0.5rem;
-    color: var(--glass-border);
-    font-weight: 300;
-}
-
-.scheduled-time {
-    color: var(--accent-primary);
+.task-title {
+    font-size: 0.9375rem;
     font-weight: 700;
+    line-height: 1.25;
+    color: var(--text-primary);
+    margin: 0;
+    transition: color 0.2s;
 }
 
-.task-actions {
-    position: absolute;
-    inset: 0;
-    background: var(--bg-secondary);
+.task-card:hover .task-title {
+    color: var(--accent-primary);
+}
+
+.task-tags {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    padding: 0 1.5rem;
-    gap: 1rem;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease-in-out;
-    z-index: 10;
-}
-
-.task-card:hover .task-actions {
-    opacity: 0.98;
-    pointer-events: auto;
-}
-
-.preview-btn-inline {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    color: var(--text-tertiary);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
-    transition: all 0.2s;
-}
-
-.preview-btn-inline:hover {
-    color: var(--accent-primary);
-    background: var(--glow);
-}
-
-.title-actions {
-    display: flex;
-    align-items: center;
     gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
-.task-actions-overlay {
+.task-tag {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.375rem;
+    text-transform: uppercase;
+}
+
+.project-tag {
+    background: var(--glow);
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    opacity: 0.8;
+}
+
+.category-tag {
+    background: var(--glass-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--glass-border);
+}
+
+/* Quick Actions Bar */
+.quick-actions-bar {
     position: absolute;
-    inset: 0;
-    background: rgba(var(--bg-secondary-rgb), 0.85);
-    backdrop-filter: blur(4px);
+    inset: auto 0 0 0;
+    padding: 0.75rem;
+    background: linear-gradient(to top, var(--bg-primary), transparent);
+    backdrop-filter: blur(8px);
     display: flex;
-    align-items: center;
     justify-content: center;
+    gap: 0.5rem;
+    border-top: 1px solid var(--glass-border);
     opacity: 0;
-    pointer-events: none;
-    transition: all 0.2s ease-in-out;
+    transform: translateY(8px);
+    transition: all 0.2s ease-out;
     z-index: 10;
 }
 
-.task-card:hover .task-actions-overlay {
+.task-card:hover .quick-actions-bar {
     opacity: 1;
-    pointer-events: auto;
-}
-
-.actions-container {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 1rem;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    transform: translateY(10px);
-    transition: transform 0.2s ease-out;
-}
-
-.task-card:hover .actions-container {
     transform: translateY(0);
 }
 
-.action-btn-small {
-    height: 36px;
-    padding: 0 1rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s;
+.action-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
-    border: none;
-}
-
-.start-btn {
-    background: var(--accent-primary);
-    color: white;
-}
-
-.start-btn:hover {
-    filter: brightness(1.2);
-    transform: scale(1.05);
-}
-
-.stop-btn {
-    background: #f59e0b;
-    color: white;
-}
-
-.stop-btn:hover {
-    filter: brightness(1.1);
-    transform: scale(1.05);
-}
-
-.complete-btn {
-    background: #10b981;
-    color: white;
-}
-
-.complete-btn:hover {
-    filter: brightness(1.1);
-    transform: scale(1.05);
-}
-
-.cancel-btn {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.2);
-}
-
-.cancel-btn:hover {
-    background: #ef4444;
-    color: white;
-}
-
-.more-btn {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: none;
-    color: var(--text-tertiary);
+    border: 1px solid transparent;
     cursor: pointer;
-    border-radius: 8px;
     transition: all 0.2s;
 }
 
-.more-btn:hover {
+.action-btn .material-symbols-outlined {
+    font-size: 1.125rem;
+}
+
+.play {
+    background: rgba(var(--bg-tertiary-rgb), 0.5);
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.play:hover {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.pause {
+    background: var(--glass-bg);
+    color: var(--text-secondary);
+    border-color: var(--glass-border);
+}
+
+.pause:hover {
     background: var(--glass-bg);
     color: var(--text-primary);
 }
 
-@media (max-width: 768px) {
-    .task-card {
-        padding: 1rem;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1rem;
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .task-info {
-        width: 100%;
-        overflow: hidden;
-    }
-
-    .task-text {
-        flex-grow: 1;
-        overflow: hidden;
-    }
-
-    .task-meta {
-        width: 100%;
-        justify-content: space-between;
-        padding-top: 0.75rem;
-        border-top: 1px solid var(--glass-border);
-    }
-
-    .task-actions {
-        padding: 0 1rem;
-        gap: 0.5rem;
-    }
-
-    .start-btn {
-        font-size: 0.8rem;
-    }
-
-    .edit-btn {
-        padding: 0 0.75rem;
-        font-size: 0.8rem;
-    }
+.check {
+    background: rgba(var(--bg-tertiary-rgb), 0.5);
+    color: var(--accent-emerald);
+    border-color: var(--accent-emerald);
 }
 
-.tag-dot {
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    flex-shrink: 0;
+.check:hover {
+    background: var(--accent-emerald);
+    color: white;
+}
+
+.delete {
+    background: rgba(var(--bg-tertiary-rgb), 0.5);
+    color: var(--accent-red);
+    border-color: var(--accent-red);
+}
+
+.delete:hover {
+    background: var(--accent-red);
+    color: white;
+}
+
+.edit {
+    background: rgba(var(--bg-tertiary-rgb), 0.5);
+    color: var(--accent-purple);
+    border-color: var(--accent-purple);
+}
+
+.edit:hover {
+    background: var(--accent-purple);
+    color: white;
+}
+
+.preview {
+    background: rgba(var(--bg-tertiary-rgb), 0.5);
+    color: var(--text-secondary);
+    border-color: var(--glass-border);
+}
+
+.preview:hover {
+    background: var(--glass-bg);
+    color: var(--text-primary);
+}
+
+.card-footer {
+    padding-top: 1rem;
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.duration-info {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--text-tertiary);
+}
+
+.duration-info .material-symbols-outlined {
+    font-size: 1rem;
+}
+
+.duration-text {
+    font-size: 0.6875rem;
+}
+
+.footer-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.icon-btn:hover {
+    color: var(--accent-primary);
+}
+
+.icon-btn .material-symbols-outlined {
+    font-size: 1rem;
+}
+
+.task-card:hover .footer-actions {
+    opacity: 0;
+}
+
+/* Status specific opacity */
+.status-completed,
+.status-cancelled {
+    opacity: 0.6;
 }
 </style>

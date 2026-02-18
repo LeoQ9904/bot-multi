@@ -1,14 +1,36 @@
 <template>
-  <div class="page-container">
-    <div class="page-content">
-      <!-- View Header -->
-      <HeaderPage title="Mis Tareas" subtitle="Organiza tus tareas diarias y mantén el control de tus pendientes" />
+  <div class="task-page-layout">
+    <main class="main-content custom-scrollbar">
 
-      <!-- Filter Bar -->
-      <TaskFilters v-model="activeFilter" />
+      <HeaderPage title="Mis Tareas" subtitle="Acciones rápidas habilitadas" />
 
-      <!-- Sections -->
-      <div class="task-sections">
+      <TaskFilters v-model="activeFilter" style="margin-bottom: 1rem;" />
+
+      <div class="header-stats-row">
+        <div class="quick-dates custom-scrollbar">
+          <button v-for="day in weekDays" :key="day.date.getTime()" class="date-btn"
+            :class="{ 'active': activeSelectDay === day.date, 'has-tasks': day.hasTasks }"
+            @click="handleDateClick(day.date)">
+            <span class="day-label">{{ day.label }}</span>
+            <span class="day-number">{{ day.number }}</span>
+            <span v-if="day.hasTasks" class="dot-indicator"></span>
+          </button>
+        </div>
+
+        <div class="divider-v"></div>
+
+        <div class="sprint-progress">
+          <div class="progress-labels">
+            <span class="progress-title">Progreso</span>
+            <span class="progress-value">{{ sprintProgress }}%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" :style="{ width: sprintProgress + '%' }"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sections-container pb-32">
         <TaskSection v-for="(group, sectionName) in filteredGroupedTasks" :key="sectionName"
           :title="String(sectionName)" :tasks="group" @start="taskStore.startTask($event.id)"
           @stop="taskStore.stopTask($event.id)" @complete="taskStore.completeTask($event.id)"
@@ -19,20 +41,66 @@
       <!-- Enhanced empty state -->
       <EmptyPage @manual="handleManualTask" @chat="handleChatTask" v-if="taskStore.tasks.length === 0"
         title="¿Listo para empezar tu día?"
-        subtitle="Aún no tienes tareas por aquí. Organiza tus pendientes y deja que Aether te ayude a ser más productivo, lo puedes hacer creando las tareas manualmente o puedes pedirle a Aether que te ayude a crearlas."
+        subtitle="Aún no tienes tareas por aquí. Organiza tus pendientes y deja que Aether te ayude a ser más productivo."
         manualText="Crear mi primera tarea" chatText="Chat con Aether" />
 
-      <div class="fab-spacer"></div>
+      <!-- Floating Bottom Actions -->
       <FabNew @chat="handleChatTask" @manual="handleManualTask" iaText="Tarea por Chat" manualText="Manual" />
+    </main>
 
-      <TaskFormModal :is-open="isModalOpen" :initial-data="editingTask" @close="closeModal" @save="handleSaveTask" />
+    <!-- Right Sidebar -->
+    <aside class="right-aside">
+      <div class="insight-card">
+        <div class="insight-header">
+          <span class="material-symbols-outlined">analytics</span>
+          <span class="insight-label">IA Insight</span>
+        </div>
+        <p class="insight-text">
+          Tu enfoque es mayor por la mañana. <span class="highlight">"Setup de agregación"</span> tiene prioridad
+          crítica; inicia el temporizador ahora.
+        </p>
+      </div>
 
-      <!-- Task Detail Modal -->
-      <TaskDetailModal :is-open="isPreviewOpen" :task="previewingTask" @close="closePreview"
-        @edit="handleEditFromPreview" @start="taskStore.startTask($event.id)" @stop="taskStore.stopTask($event.id)"
-        @complete="handleActionAndClosePreview('complete', $event)"
-        @cancel="handleActionAndClosePreview('cancel', $event)" @more="handleMoreActions" />
-    </div>
+      <div class="metrics-section">
+        <h3 class="aside-section-title">Métricas de Hoy</h3>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-value">7.5h</span>
+            <span class="metric-label">Trabajo Estimado</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-value">8/10</span>
+            <span class="metric-label">Energía Media</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="events-section">
+        <h3 class="aside-section-title">Próximos Eventos</h3>
+        <div class="events-list">
+          <div class="event-item">
+            <div class="event-indicator emerald"></div>
+            <div class="event-info">
+              <p class="event-name">Product Review</p>
+              <p class="event-time">10:00 AM - 11:30 AM</p>
+            </div>
+          </div>
+          <div class="event-item">
+            <div class="event-indicator indigo"></div>
+            <div class="event-info">
+              <p class="event-name">Design Critique</p>
+              <p class="event-time">03:00 PM - 04:00 PM</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <TaskFormModal :is-open="isModalOpen" :initial-data="editingTask" @close="closeModal" @save="handleSaveTask" />
+    <TaskDetailModal :is-open="isPreviewOpen" :task="previewingTask" @close="closePreview" @edit="handleEditFromPreview"
+      @start="taskStore.startTask($event.id)" @stop="taskStore.stopTask($event.id)"
+      @complete="handleActionAndClosePreview('complete', $event)"
+      @cancel="handleActionAndClosePreview('cancel', $event)" @more="handleMoreActions" />
   </div>
 </template>
 
@@ -41,17 +109,38 @@ import { ref, computed, onMounted } from 'vue';
 import { useTaskStore } from '~/stores/task.store';
 import TaskFilters from '~/components/tasks/TaskFilters.vue';
 import TaskSection from '~/components/tasks/TaskSection.vue';
-import FabNew from '~/components/FabNew.vue';
 import TaskFormModal from '~/components/tasks/TaskFormModal.vue';
 import TaskDetailModal from '~/components/tasks/TaskDetailModal.vue';
 import HeaderPage from '~/components/HeaderPage.vue';
+import FabNew from '~/components/FabNew.vue';
 import EmptyPage from '~/components/EmptyPage.vue';
-import { isBefore, isPast, isSameWeek, isThisWeek, isToday, isTomorrow, isYesterday, lastDayOfISOWeek, subWeeks } from 'date-fns';
+import { isBefore, isPast, isSameWeek, isThisWeek, isToday, isTomorrow, isYesterday, subWeeks, startOfWeek, addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const taskStore = useTaskStore();
+const activeSelectDay = ref<Date | null>();
 
 onMounted(() => {
   taskStore.fetchTasks();
+});
+
+const weekDays = computed(() => {
+  const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+  return Array.from({ length: 7 }).map((_, i) => {
+    const d = addDays(start, i);
+    return {
+      date: d,
+      label: i === 0 ? 'Ayer' : i === 1 ? 'Hoy' : format(d, 'eee', { locale: es }),
+      number: format(d, 'd'),
+      hasTasks: taskStore.tasks.some(t => isSameDay(t.scheduledAt, d) && t.status === 'pending')
+    };
+  });
+});
+
+const sprintProgress = computed(() => {
+  if (taskStore.tasks.length === 0) return 0;
+  const completedTasks = taskStore.tasks.filter(t => t.status === 'completed').length;
+  return Math.round((completedTasks / taskStore.tasks.length) * 100);
 });
 
 // Modal State
@@ -67,7 +156,7 @@ const activeFilter = ref({
   categories: [] as string[],
   sortOrder: 'desc' as 'asc' | 'desc',
   sortBy: 'scheduledAt' as 'createdAt' | 'scheduledAt',
-  dateRange: { start: null as number | null, end: null as number | null },
+  dateRange: { start: null as string | null, end: null as string | null },
   tags: [] as string[]
 });
 
@@ -87,9 +176,11 @@ const filteredGroupedTasks = computed(() => {
 
   // Filter by Date Range
   if (activeFilter.value.dateRange.start && activeFilter.value.dateRange.end) {
+    const startTs = new Date(activeFilter.value.dateRange.start).getTime();
+    const endTs = new Date(activeFilter.value.dateRange.end).getTime();
     filtered = filtered.filter(t =>
-      t.scheduledAt >= activeFilter.value.dateRange.start! &&
-      t.scheduledAt <= activeFilter.value.dateRange.end!
+      new Date(t.scheduledAt).getTime() >= startTs &&
+      new Date(t.scheduledAt).getTime() <= endTs
     );
   }
 
@@ -140,211 +231,475 @@ const filteredGroupedTasks = computed(() => {
   );
 });
 
-// Event Handlers
-const handleChatTask = () => {
-  navigateTo({
-    path: '/chat',
-    query: {
-      initialMessage: 'Hola! Quiero que me ayudes a crear la siguiente tarea: '
-    }
-  });
-};
-
-const handleManualTask = () => {
-  editingTask.value = null;
-  isModalOpen.value = true;
-};
-
-const handleEditClick = (task: any) => {
-  editingTask.value = { ...task };
-  isModalOpen.value = true;
-};
-
+const handleChatTask = () => { navigateTo({ path: '/chat', query: { initialMessage: 'Hola! Ayúdame con una tarea: ' } }); };
+const handleManualTask = () => { editingTask.value = null; isModalOpen.value = true; };
+const handleEditClick = (task: any) => { editingTask.value = { ...task }; isModalOpen.value = true; };
 const handleSaveTask = async (formData: any) => {
-  if (editingTask.value) {
-    await taskStore.updateTask(editingTask.value.id, formData);
-  } else {
-    await taskStore.addTask(formData);
-  }
+  if (editingTask.value) await taskStore.updateTask(editingTask.value.id, formData);
+  else await taskStore.addTask(formData);
   closeModal();
 };
-
-const closeModal = () => {
-  isModalOpen.value = false;
-  editingTask.value = null;
-};
-
-const handlePreviewClick = (task: any) => {
-  previewingTask.value = task;
-  isPreviewOpen.value = true;
-};
-
-const closePreview = () => {
-  isPreviewOpen.value = false;
-  previewingTask.value = null;
-};
-
-const handleEditFromPreview = (task: any) => {
-  editingTask.value = { ...task };
-  isPreviewOpen.value = false;
-  isModalOpen.value = true;
-};
-
+const closeModal = () => { isModalOpen.value = false; editingTask.value = null; };
+const handlePreviewClick = (task: any) => { previewingTask.value = task; isPreviewOpen.value = true; };
+const closePreview = () => { isPreviewOpen.value = false; previewingTask.value = null; };
+const handleEditFromPreview = (task: any) => { editingTask.value = { ...task }; isPreviewOpen.value = false; isModalOpen.value = true; };
 const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: any) => {
-  if (action === 'complete') {
-    await taskStore.completeTask(task.id);
-  } else if (action === 'cancel') {
-    await taskStore.cancelTask(task.id);
-  }
+  if (action === 'complete') await taskStore.completeTask(task.id);
+  else if (action === 'cancel') await taskStore.cancelTask(task.id);
   closePreview();
 };
-
 const handleMoreActions = async (task: any) => {
-  const wantsToDelete = confirm('¿Deseas eliminar esta tarea?');
-  if (wantsToDelete) {
+  if (confirm('¿Deseas eliminar esta tarea?')) {
     await taskStore.deleteTask(task.id);
     closePreview();
   }
 };
+
+const handleDateClick = (date: Date) => {
+  if (activeSelectDay.value === date) {
+    activeSelectDay.value = null;
+    activeFilter.value.dateRange.start = null;
+    activeFilter.value.dateRange.end = null;
+    return;
+  }
+  activeSelectDay.value = date;
+  activeFilter.value.dateRange.start = startOfDay(date).toISOString();
+  activeFilter.value.dateRange.end = endOfDay(date).toISOString();
+};
 </script>
 
 <style scoped>
-.task-page-container {
+.task-page-layout {
   display: flex;
-  flex-direction: column;
+  height: 100vh;
   width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+  background: var(--bg-primary);
+  overflow: hidden;
 }
 
-/* Header */
-.view-header {
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;
+  padding: 2rem;
+}
+
+.header-section {
+  padding: 2rem 2rem 1rem 2rem;
+}
+
+.header-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 2rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
 }
 
 .page-title {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: var(--text-primary);
   margin: 0;
 }
 
-.config-btn {
+.page-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+  margin-top: 0.25rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-outline-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--bg-tertiary);
+  padding: 0.5rem 1rem;
+  background: var(--glass-bg);
   border: 1px solid var(--glass-border);
+  border-radius: 0.75rem;
   color: var(--text-secondary);
-  padding: 0.6rem 1.2rem;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
 
-.config-btn:hover {
+.action-outline-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.header-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.quick-dates {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.date-btn {
+  flex-shrink: 0;
+  width: 3rem;
+  height: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.date-btn.active {
+  background: var(--accent-primary);
+  color: #fff;
+  box-shadow: 0 4px 12px var(--glow);
+}
+
+.date-btn.active .day-label {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.day-label {
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.day-number {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.dot-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 0.375rem;
+  height: 0.375rem;
+  background: var(--accent-red);
+  border-radius: 50%;
+}
+
+.divider-v {
+  width: 1px;
+  height: 2.5rem;
+  background: var(--glass-border);
+}
+
+.sprint-progress {
+  flex: 1;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.progress-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.progress-value {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.progress-bar-container {
+  height: 0.375rem;
+  background: var(--glass-bg);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--accent-primary);
+  border-radius: 1rem;
+  box-shadow: 0 0 12px var(--glow);
+}
+
+.filters-wrapper {
+  padding: 0 2rem 1rem 2rem;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1rem;
+}
+
+/* Floating Actions */
+.floating-actions-bar {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.375rem;
+  border-radius: 1.25rem;
+  background: rgba(var(--bg-secondary-rgb), 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 40px var(--shadow);
+  z-index: 100;
+}
+
+.ai-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent-primary);
+  color: #fff;
+  border-radius: 0.875rem;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px var(--glow);
+  transition: all 0.2s;
+}
+
+.ai-new-btn:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.manual-add-btn {
+  width: 3.25rem;
+  height: 3.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-tertiary);
+  border-radius: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manual-add-btn:hover {
   background: var(--glass-bg);
   color: var(--text-primary);
 }
 
-/* View Toggle */
-.view-toggle {
-  background: var(--bg-tertiary);
-  padding: 4px;
-  border-radius: 16px;
-  display: flex;
-  margin-bottom: 1.5rem;
-}
-
-.toggle-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.6rem;
-  border: none;
-  background: transparent;
-  color: var(--text-tertiary);
-  font-size: 0.85rem;
-  font-weight: 700;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.toggle-btn.active {
-  background: var(--bg-secondary);
-  color: var(--accent-primary);
-  box-shadow: 0 4px 12px var(--shadow);
-}
-
-/* Task Sections */
-.task-sections {
+/* Right Sidebar */
+.right-aside {
+  width: 20rem;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--glass-border);
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 3rem;
+  gap: 2rem;
 }
 
-/* FAB Spacer */
-.fab-spacer {
+.insight-card {
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent-primary);
+  margin-bottom: 0.75rem;
+}
+
+.insight-label {
+  font-size: 0.625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.insight-text {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.insight-text .highlight {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.aside-section-title {
+  font-size: 0.6875rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--text-tertiary);
+  margin-bottom: 1rem;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.metric-card {
+  padding: 1rem;
+  border-radius: 1.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  text-align: center;
+}
+
+.metric-value {
+  display: block;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.metric-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-item {
+  display: flex;
+  gap: 1rem;
+}
+
+.event-indicator {
+  width: 0.25rem;
+  height: 2.5rem;
+  border-radius: 1rem;
+}
+
+.event-indicator.emerald {
+  background: var(--accent-emerald);
+}
+
+.event-indicator.indigo {
+  background: var(--accent-primary);
+}
+
+.event-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.event-time {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  margin-top: 0.125rem;
+}
+
+.quick-note-section {
+  margin-top: auto;
+}
+
+.textarea-wrapper {
+  position: relative;
+}
+
+.quick-textarea {
+  width: 100%;
   height: 6rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.25rem;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  resize: none;
+  outline: none;
+  transition: all 0.2s;
 }
 
-/* Mobile Adjustments */
+.quick-textarea:focus {
+  border-color: var(--accent-primary);
+  background: var(--bg-tertiary);
+}
+
+.send-note-btn {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.send-note-btn:hover {
+  color: var(--accent-primary);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+
+@media (max-width: 1280px) {
+  .right-aside {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
-  .task-page-container {
-    padding: 1rem 1rem 8rem 1rem;
-    /* Increased padding-bottom to see content behind navbar+FAB */
-    overflow-x: hidden;
-    /* Prevent horizontal overflow */
-    width: 100%;
-    box-sizing: border-box;
+  .header-stats-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
   }
 
-  .page-title {
-    font-size: 1.5rem;
+  .divider-v {
+    display: none;
   }
 
-  .view-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .view-toggle {
-    margin-bottom: 1rem;
-    overflow-x: auto;
-    width: 100%;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .toggle-btn {
-    padding: 0.5rem;
-    font-size: 0.8rem;
-    min-width: 100px;
-  }
-
-  .task-sections {
-    gap: 2rem;
+  .header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
   }
 }
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.pb-32 {
+  padding-bottom: 8rem;
 }
 </style>

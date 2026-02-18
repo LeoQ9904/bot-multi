@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div class="filter-container">
         <div class="filter-bar">
             <!-- Todas / Categorías Popover -->
             <BasePopover position="bottom-left" size="large">
@@ -220,11 +220,18 @@ const handleManualDate = (value: any) => {
 </script>
 
 <style scoped>
+.filter-container {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .filter-bar {
     display: flex;
     gap: 0.75rem;
     overflow-x: visible;
     padding-bottom: 0.4rem;
+
 }
 
 .filter-chip {
