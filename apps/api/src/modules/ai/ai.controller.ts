@@ -134,6 +134,9 @@ export class AIController {
   private async getListInterests(userId: string, createdAt: string): Promise<InterestsResponse | null> {
     try {
       const filePath = path.join(this.storageBaseDir, userId, 'interests.json');
+      if (!fs.existsSync(filePath)) {
+        return { interests: [] };
+      }
       const data = fs.readFileSync(filePath, 'utf-8');
       const interests: Interests[] = JSON.parse(data);
       const interestsList = interests.filter((interest) => interest.createdAt === createdAt);
