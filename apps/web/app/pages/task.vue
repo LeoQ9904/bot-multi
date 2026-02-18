@@ -157,7 +157,7 @@ const weekDays = computed(() => {
     const d = addDays(start, i);
     return {
       date: d,
-      label: i === 0 ? 'Ayer' : i === 1 ? 'Hoy' : format(d, 'eee', { locale: es }),
+      label: format(d, 'eee', { locale: es }),
       number: format(d, 'd'),
       hasTasks: taskStore.tasks.some(t => isSameDay(t.scheduledAt, d) && t.status === 'pending')
     };

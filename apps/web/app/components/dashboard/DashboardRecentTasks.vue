@@ -27,7 +27,7 @@
 
                 <div class="focus-content">
                     <div class="focus-meta">
-                        <span class="focus-badge" :class="getStatusClass(mainFocusTask.status)">
+                        <span class="focus-badge" :style="{ color: mainFocusTask.tagColor }">
                             <span class="material-symbols-outlined">{{ getStatusIcon(mainFocusTask.status) }}</span>
                             {{ getStatusLabel(mainFocusTask.status) }}
                         </span>
@@ -205,24 +205,6 @@ const getStatusLabel = (status: string) => {
         'paused': 'Pausada'
     };
     return labels[status] || status;
-};
-
-const getStatusClass = (status: string) => {
-    return `status-${status}`;
-};
-
-const getTagColor = (colorName: string) => {
-    const colors: Record<string, string> = {
-        'blue': '#3b82f6',
-        'purple': '#a855f7',
-        'emerald': '#10b981',
-        'amber': '#f59e0b',
-        'red': '#ef4444',
-        'gray': '#9ca3af',
-        'pink': '#ec4899',
-        'indigo': '#6366f1'
-    };
-    return colors[colorName] || colorName || '#9ca3af';
 };
 
 const formatTime = (ts: number) => {
