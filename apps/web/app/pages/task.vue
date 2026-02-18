@@ -47,8 +47,16 @@
       <FabNew @chat="handleChatTask" @manual="handleManualTask" iaText="Tarea por Chat" manualText="Manual" />
     </main>
 
+    <!-- Mobile Sidebar Toggle -->
+    <button class="mobile-sidebar-toggle" @click="isMobileSidebarOpen = true">
+      <span class="material-symbols-outlined">analytics</span>
+    </button>
+
+    <!-- Overlay logic -->
+    <div v-if="isMobileSidebarOpen" class="sidebar-overlay" @click="isMobileSidebarOpen = false"></div>
+
     <!-- Right Sidebar -->
-    <aside class="right-aside">
+    <aside class="right-aside" :class="{ 'mobile-open': isMobileSidebarOpen }">
       <div class="insight-card" v-if="insightText">
         <div class="insight-header">
           <span class="material-symbols-outlined">analytics</span>
@@ -134,6 +142,7 @@ const editingTask = ref<any>(null);
 const isPreviewOpen = ref(false);
 const previewingTask = ref<any>(null);
 const showFilters = ref(false);
+const isMobileSidebarOpen = ref(false);
 const insightText = ref('');
 
 const activeFilter = ref({
@@ -582,6 +591,37 @@ const recomendationAI = async () => {
 }
 
 /* Floating Actions */
+.mobile-sidebar-toggle {
+  display: none;
+  position: fixed;
+  right: 1.5rem;
+  top: 6rem;
+  z-index: 1001;
+  background: var(--accent-primary);
+  color: white;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 4px 12px var(--glow);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.mobile-sidebar-toggle:hover {
+  transform: scale(1.1);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
 .floating-actions-bar {
   position: absolute;
   bottom: 2rem;
@@ -678,6 +718,19 @@ const recomendationAI = async () => {
 .insight-text .highlight {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.mobile-close-btn {
+  display: none;
+  align-self: flex-end;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.mobile-close-btn:hover {
+  color: var(--text-primary);
 }
 
 .aside-section-title {
@@ -800,8 +853,31 @@ const recomendationAI = async () => {
 }
 
 @media (max-width: 1280px) {
+  .mobile-sidebar-toggle {
+    display: flex;
+  }
+
   .right-aside {
-    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    z-index: 1010;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    background: var(--bg-secondary);
+  }
+
+  .right-aside.mobile-open {
+    transform: translateX(0);
+    gap: 0.5rem;
+    padding: 0.5rem 1.5rem;
+  }
+
+  .mobile-close-btn {
+    display: flex;
   }
 }
 
