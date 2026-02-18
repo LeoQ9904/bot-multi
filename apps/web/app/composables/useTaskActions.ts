@@ -1,10 +1,9 @@
 import { useTaskStore } from '~/stores/task.store';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import type { Task } from '~/types/task.types';
 
 export const useTaskActions = () => {
     const taskStore = useTaskStore();
-    const router = useRouter();
     const route = useRoute();
 
     // Navigation Actions
@@ -46,6 +45,13 @@ export const useTaskActions = () => {
         await taskStore.cancelTask(String(taskId));
     };
 
+    const handleClose = async () => {
+        await navigateTo({
+            path: '/task',
+            query: { ...route.query, new: undefined, edit: undefined, view: undefined }
+        });
+    };
+
     const handleDelete = async (taskId: string | number) => {
         if (confirm('¿Deseas eliminar esta tarea?')) {
             await taskStore.deleteTask(String(taskId));
@@ -70,6 +76,7 @@ export const useTaskActions = () => {
         handleStop,
         handleComplete,
         handleCancel,
+        handleClose,
         handleDelete,
         handleSaveTask
     };

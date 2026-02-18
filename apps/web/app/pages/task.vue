@@ -131,7 +131,8 @@ const {
   handleComplete: completeTask,
   handleCancel: cancelTask,
   handleDelete: deleteTask,
-  handleSaveTask: saveTaskAction
+  handleSaveTask: saveTaskAction,
+  handleClose
 } = useTaskActions();
 
 const activeSelectDay = ref<Date | null>();
@@ -263,9 +264,6 @@ watch(() => route.query, () => {
   handleQueryActions();
 }, { deep: true });
 
-const toggleFilters = () => {
-  showFilters.value = !showFilters.value;
-};
 
 const handleChatTask = () => { navigateTo({ path: '/chat', query: { initialMessage: 'Hola! Ayúdame con una tarea: ' } }); };
 const handleManualTask = () => openNewTask();
@@ -276,15 +274,10 @@ const handleSaveTask = async (formData: any) => {
   closeModal();
 };
 
-const closeModal = () => {
-  const query = { ...route.query };
-  delete query.new;
-  delete query.edit;
-  router.push({ query });
-};
+const closeModal = () => { handleClose(); };
 
 const handlePreviewClick = (task: any) => openViewTask(task.id);
-const closePreview = () => { isPreviewOpen.value = false; previewingTask.value = null; };
+const closePreview = () => { handleClose(); isPreviewOpen.value = false; previewingTask.value = null; };
 const handleEditFromPreview = (task: any) => openEditTask(task.id);
 
 const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: any) => {
