@@ -23,25 +23,9 @@
 
         <!-- Quick Actions Bar (Hover) -->
         <div class="quick-actions-bar">
-            <button v-if="task.status === 'in-progress'" class="action-btn pause" @click.stop="$emit('stop', task)"
-                title="Pausar">
-                <span class="material-symbols-outlined">pause</span>
-            </button>
-            <button v-else class="action-btn play" @click.stop="$emit('start', task)" title="Iniciar">
-                <span class="material-symbols-outlined font-fill">play_arrow</span>
-            </button>
-            <button class="action-btn check" @click.stop="$emit('complete', task)" title="Terminar">
-                <span class="material-symbols-outlined">check</span>
-            </button>
-            <button class="action-btn delete" @click.stop="$emit('more', task)" title="Eliminar">
-                <span class="material-symbols-outlined">delete</span>
-            </button>
-            <button class="action-btn edit" @click.stop="$emit('edit', task)" title="Editar">
-                <span class="material-symbols-outlined">edit</span>
-            </button>
-            <button class="action-btn preview" @click.stop="$emit('preview', task)" title="Previsualizar">
-                <span class="material-symbols-outlined">visibility</span>
-            </button>
+            <TaskQuickActions :task="task" @start="$emit('start', $event)" @stop="$emit('stop', $event)"
+                @complete="$emit('complete', $event)" @cancel="$emit('cancel', $event)" @edit="$emit('edit', $event)"
+                @more="$emit('more', $event)" @preview="$emit('preview', $event)" />
         </div>
 
         <div class="card-footer">
@@ -60,6 +44,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import TaskQuickActions from './TaskQuickActions.vue';
 
 const props = defineProps<{
     task: {
@@ -257,88 +242,6 @@ defineEmits(['start', 'stop', 'complete', 'cancel', 'edit', 'more', 'preview']);
 .task-card:hover .quick-actions-bar {
     opacity: 1;
     transform: translateY(0);
-}
-
-.action-btn {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.action-btn .material-symbols-outlined {
-    font-size: 1.125rem;
-}
-
-.play {
-    background: rgba(var(--bg-tertiary-rgb), 0.5);
-    color: var(--accent-blue);
-    border-color: var(--accent-blue);
-}
-
-.play:hover {
-    background: var(--accent-blue);
-    color: white;
-}
-
-.pause {
-    background: var(--glass-bg);
-    color: var(--text-secondary);
-    border-color: var(--glass-border);
-}
-
-.pause:hover {
-    background: var(--glass-bg);
-    color: var(--text-primary);
-}
-
-.check {
-    background: rgba(var(--bg-tertiary-rgb), 0.5);
-    color: var(--accent-emerald);
-    border-color: var(--accent-emerald);
-}
-
-.check:hover {
-    background: var(--accent-emerald);
-    color: white;
-}
-
-.delete {
-    background: rgba(var(--bg-tertiary-rgb), 0.5);
-    color: var(--accent-red);
-    border-color: var(--accent-red);
-}
-
-.delete:hover {
-    background: var(--accent-red);
-    color: white;
-}
-
-.edit {
-    background: rgba(var(--bg-tertiary-rgb), 0.5);
-    color: var(--accent-purple);
-    border-color: var(--accent-purple);
-}
-
-.edit:hover {
-    background: var(--accent-purple);
-    color: white;
-}
-
-.preview {
-    background: rgba(var(--bg-tertiary-rgb), 0.5);
-    color: var(--text-secondary);
-    border-color: var(--glass-border);
-}
-
-.preview:hover {
-    background: var(--glass-bg);
-    color: var(--text-primary);
 }
 
 .card-footer {

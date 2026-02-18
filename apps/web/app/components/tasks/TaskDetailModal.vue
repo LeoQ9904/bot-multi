@@ -116,27 +116,10 @@
 
         <!-- Footer -->
         <template #footer>
-            <div class="footer-left">
-                <button class="action-btn btn-ghost" @click="$emit('edit', task)">
-                    <span class="material-symbols-outlined">edit</span>
-                    Editar
-                </button>
-                <button class="action-btn btn-ghost-danger" @click="$emit('more', task)">
-                    <span class="material-symbols-outlined">delete</span>
-                    Eliminar
-                </button>
-            </div>
-            <div class="footer-right">
-                <button class="action-btn btn-secondary" @click="handleAction">
-                    <span class="material-symbols-outlined">
-                        {{ task.status === 'in-progress' ? 'pause' : 'play_arrow' }}
-                    </span>
-                    {{ task.status === 'in-progress' ? 'Pausar' : 'Iniciar' }}
-                </button>
-                <button class="action-btn btn-primary" @click="$emit('complete', task)">
-                    <span class="material-symbols-outlined">check_circle</span>
-                    Completar
-                </button>
+            <div style="display: flex; gap: 2rem;">
+                <TaskQuickActions :task="task" :show-preview="false" @start="$emit('start', $event)"
+                    @stop="$emit('stop', $event)" @complete="$emit('complete', $event)" @edit="$emit('edit', $event)"
+                    @more="$emit('more', $event)" />
             </div>
         </template>
     </BaseModal>
@@ -144,6 +127,7 @@
 
 <script setup lang="ts">
 import BaseModal from '../ui/BaseModal.vue';
+import TaskQuickActions from './TaskQuickActions.vue';
 
 const props = defineProps<{
     isOpen: boolean;

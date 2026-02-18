@@ -38,7 +38,7 @@ const quickOptions = [
         label: 'Hoy', getValue: () => {
             const d = new Date();
             d.setHours(9, 0, 0, 0);
-            return d.getTime();
+            return d.toISOString();
         }
     },
     {
@@ -46,7 +46,7 @@ const quickOptions = [
             const d = new Date();
             d.setDate(d.getDate() + 1);
             d.setHours(9, 0, 0, 0);
-            return d.getTime();
+            return d.toISOString();
         }
     },
     {
@@ -54,7 +54,7 @@ const quickOptions = [
             const d = new Date();
             d.setDate(d.getDate() + ((1 + 7 - d.getDay()) % 7 || 7));
             d.setHours(9, 0, 0, 0);
-            return d.getTime();
+            return d.toISOString();
         }
     }
 ];

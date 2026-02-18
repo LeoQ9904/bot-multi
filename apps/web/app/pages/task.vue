@@ -154,21 +154,23 @@ const activeFilter = ref({
 
 const weekDays = computed(() => {
   const start = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const currentDay = startOfDay(new Date());
   return Array.from({ length: 7 }).map((_, i) => {
     const d = addDays(start, i);
     return {
       date: d,
-      label: format(d, 'eee', { locale: es }),
+      label: isSameDay(d, currentDay) ? 'Hoy' : format(d, 'eee', { locale: es }),
       number: format(d, 'd'),
-      hasTasks: taskStore.tasks.some(t => isSameDay(t.scheduledAt, d) && t.status === 'pending')
+      hasTasks: taskStore.tasks.some(t => isSameDay(t.scheduledAt, d) && t.status === 'pending'),
     };
   });
 });
 
 const sprintProgress = computed(() => {
-  if (taskStore.tasks.length === 0) return 0;
-  const completedTasks = taskStore.tasks.filter(t => t.status === 'completed').length;
-  return Math.round((completedTasks / taskStore.tasks.length) * 100);
+  if (filteredGroupedTasks.value && Object.keys(filteredGroupedTasks.value).length === 0) return 0;
+  const completedTasks = Object.values(filteredGroupedTasks.value).flat().filter(t => t.status === 'completed').length;
+  const totalTasks = Object.values(filteredGroupedTasks.value).flat().length;
+  return Math.round((completedTasks / totalTasks) * 100);
 });
 
 // Check for 'new' or 'edit' in query
@@ -278,7 +280,7 @@ const closeModal = () => { handleClose(); };
 
 const handlePreviewClick = (task: any) => openViewTask(task.id);
 const closePreview = () => { handleClose(); isPreviewOpen.value = false; previewingTask.value = null; };
-const handleEditFromPreview = (task: any) => openEditTask(task.id);
+const handleEditFromPreview = (task: any) => { closePreview(); openEditTask(task.id) };
 
 const handleActionAndClosePreview = async (action: 'complete' | 'cancel', task: any) => {
   if (action === 'complete') await completeTask(task.id);
