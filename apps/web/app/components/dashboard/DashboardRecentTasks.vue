@@ -3,16 +3,6 @@
         <div class="section-header">
             <div class="header-left">
                 <h3 class="section-title-dashboard">Plan de Hoy</h3>
-                <div class="header-stats">
-                    <span class="stat-item">
-                        <span class="material-symbols-outlined">task_alt</span>
-                        {{ completedTasksCount }}/{{ totalTasksToday }}
-                    </span>
-                    <span class="stat-item">
-                        <span class="material-symbols-outlined">schedule</span>
-                        {{ totalTimeToday }}
-                    </span>
-                </div>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <NuxtLink to="/task?new" class="btn-text" style="text-decoration: none;">
