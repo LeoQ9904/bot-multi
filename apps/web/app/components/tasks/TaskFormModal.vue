@@ -119,7 +119,6 @@ import BaseDateTimePicker from '../ui/BaseDateTimePicker.vue';
 import ColorTagSelector from '../ui/ColorTagSelector.vue';
 import { useTaskStore } from '../../stores/task.store';
 import { IaService } from '~/services/ia.service';
-import Loader from '../icons/Loader.vue';
 import { useFirebaseAuth } from '../../composables/useAuth';
 
 const props = defineProps<{

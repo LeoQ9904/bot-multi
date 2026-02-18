@@ -7,9 +7,8 @@
                 <span class="tag-dot" :style="getColorStyle(color)"></span>
             </button>
 
-            <div class="custom-color-wrapper">
-                <input type="color" id="customColor" :value="customColorValue" @input="handleCustomColor"
-                    class="color-input">
+            <div class="custom-color-wrapper" v-if="false">
+                <input type="color" id="customColor" :value="customColorValue" disabled="true" class="color-input">
                 <label for="customColor" class="add-color-btn" title="Color personalizado">
                     <span class="material-symbols-outlined">add</span>
                 </label>

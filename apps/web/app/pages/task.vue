@@ -49,27 +49,24 @@
 
     <!-- Right Sidebar -->
     <aside class="right-aside">
-      <div class="insight-card">
+      <div class="insight-card" v-if="insightText">
         <div class="insight-header">
           <span class="material-symbols-outlined">analytics</span>
           <span class="insight-label">IA Insight</span>
         </div>
-        <p class="insight-text">
-          Tu enfoque es mayor por la mañana. <span class="highlight">"Setup de agregación"</span> tiene prioridad
-          crítica; inicia el temporizador ahora.
-        </p>
+        <div v-html="insightText" class="insight-text"></div>
       </div>
 
       <div class="metrics-section">
         <h3 class="aside-section-title">Métricas de Hoy</h3>
         <div class="metrics-grid">
           <div class="metric-card">
-            <span class="metric-value">7.5h</span>
+            <span class="metric-value">{{ hoursToday }} </span>
             <span class="metric-label">Trabajo Estimado</span>
           </div>
           <div class="metric-card">
-            <span class="metric-value">8/10</span>
-            <span class="metric-label">Energía Media</span>
+            <span class="metric-value">{{ taskCompleted }}</span>
+            <span class="metric-label">Tareas Completadas</span>
           </div>
         </div>
       </div>
@@ -77,18 +74,11 @@
       <div class="events-section">
         <h3 class="aside-section-title">Próximos Eventos</h3>
         <div class="events-list">
-          <div class="event-item">
-            <div class="event-indicator emerald"></div>
+          <div v-for="event in taskPending" :key="event.id" class="event-item">
+            <div class="event-indicator" :style="{ background: event.tagColor }"></div>
             <div class="event-info">
-              <p class="event-name">Product Review</p>
-              <p class="event-time">10:00 AM - 11:30 AM</p>
-            </div>
-          </div>
-          <div class="event-item">
-            <div class="event-indicator indigo"></div>
-            <div class="event-info">
-              <p class="event-name">Design Critique</p>
-              <p class="event-time">03:00 PM - 04:00 PM</p>
+              <p class="event-name">{{ event.title }}</p>
+              <p class="event-time">{{ formatStartAt(event.scheduledAt, event.duration) }}</p>
             </div>
           </div>
         </div>
@@ -117,7 +107,10 @@ import FabNew from '~/components/FabNew.vue';
 import EmptyPage from '~/components/EmptyPage.vue';
 import { isBefore, isPast, isSameWeek, isThisWeek, isToday, isTomorrow, isYesterday, subWeeks, startOfWeek, addDays, format, isSameDay, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { IaService } from '~/services/ia.service';
+import { useFirebaseAuth } from '~/composables/useAuth';
 
+const { user } = useFirebaseAuth();
 const taskStore = useTaskStore();
 const route = useRoute();
 const router = useRouter();
@@ -141,6 +134,7 @@ const editingTask = ref<any>(null);
 const isPreviewOpen = ref(false);
 const previewingTask = ref<any>(null);
 const showFilters = ref(false);
+const insightText = ref('');
 
 const activeFilter = ref({
   type: 'all',
@@ -257,6 +251,7 @@ onMounted(async () => {
   await taskStore.fetchTasks();
   syncUrlToFilters();
   handleQueryActions();
+  await recomendationAI();
 });
 
 watch(activeFilter, () => syncFiltersToUrl(), { deep: true });
@@ -332,9 +327,65 @@ const filteredGroupedTasks = computed(() => {
     else if (isTomorrow(taskTs)) groups['Mañana']!.push(task);
     else if (isThisWeek(taskTs)) groups['Esta Semana']!.push(task);
     else if (isPast(taskTs)) groups['Más antiguas']!.push(task);
+    else groups['Próximamente']!.push(task);
   });
   return Object.fromEntries(Object.entries(groups).filter(([_, group]) => group.length > 0));
 });
+
+// calculo de las horas de hoy
+const hoursToday = computed(() => {
+  const tasksToday = taskStore.tasks.filter(task => isToday(task.scheduledAt));
+  const totalHours = tasksToday.reduce((acc, task) => acc + minutesValue(task.duration), 0);
+
+  const horas = Math.floor(totalHours / 60);
+  const minutosRestantes = totalHours % 60;
+
+  return `${horas}.${minutosRestantes.toString().padStart(2, '0')} h`;
+});
+
+const taskCompleted = computed(() => {
+  const tasksToday = taskStore.tasks.filter(task => isToday(task.scheduledAt));
+  const completedTasks = tasksToday.filter(task => task.completedAt && task.status === 'completed');
+  return `${completedTasks.length}/${tasksToday.length}`;
+});
+
+const taskPending = computed(() => {
+  const tasksToday = taskStore.tasks.filter(task => isToday(task.scheduledAt));
+  const pendingTasks = tasksToday.filter(task => task.status !== 'completed');
+  return pendingTasks;
+});
+
+const minutesValue = (val: string): number => {
+  const minutes = val.split(' ')[0] || '0';
+  return parseInt(minutes);
+}
+
+const formatStartAt = (date: number, duration: string) => {
+  const dateObj = new Date(date);
+  const minutes = minutesValue(duration);
+  const dateObjEnd = new Date(date);
+  dateObjEnd.setMinutes(dateObjEnd.getMinutes() + minutes);
+  return `${dateObj.toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit' })} - ${dateObjEnd.toLocaleString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+const recomendationAI = async () => {
+  try {
+    const prompt = `
+      Estas son las tareas del día del usuario: ${taskPending.value}
+      Quiero que me retornes un string de aproximadamente 150 caracteres donde me recomiendes con que tarea inidicar o concejos al respecto.
+      **IMPORTANT**: Ten en cuenta  que el listado de las tareas son las que el usuario tiene pendientes por realizar.
+      Retorne en formato html con sobreado sobre los datos que consideres importantes, como los titulos de las tareas.
+      **IMPORTANT**: El horario de scheduledAt es en formato toISOString(). Es importante que conviertas las horas a formato UTC-5 Bogota.
+      **IMPORTANT**: No retornes el formato de hora ejemplo 9:00 a.m (UTC-5), no es necesario, solo retornar 9:00 a.m.
+    `;
+    const token = await user.value?.getIdToken();
+    const response = await IaService.chat(prompt, 'recomendation', token || '');
+    insightText.value = response.data.response;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 </script>
 
 <style scoped>
@@ -598,8 +649,7 @@ const filteredGroupedTasks = computed(() => {
 }
 
 .insight-card {
-  padding: 1.25rem;
-  border-radius: 1.5rem;
+  padding: 0.5rem;
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
   border: 1px solid rgba(99, 102, 241, 0.2);
 }
@@ -609,7 +659,7 @@ const filteredGroupedTasks = computed(() => {
   align-items: center;
   gap: 0.5rem;
   color: var(--accent-primary);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .insight-label {
@@ -620,7 +670,7 @@ const filteredGroupedTasks = computed(() => {
 }
 
 .insight-text {
-  font-size: 0.8125rem;
+  font-size: 0.7rem;
   line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -669,9 +719,8 @@ const filteredGroupedTasks = computed(() => {
 }
 
 .events-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  max-height: 55vh;
+  overflow-y: auto;
 }
 
 .event-item {
@@ -683,14 +732,6 @@ const filteredGroupedTasks = computed(() => {
   width: 0.25rem;
   height: 2.5rem;
   border-radius: 1rem;
-}
-
-.event-indicator.emerald {
-  background: var(--accent-emerald);
-}
-
-.event-indicator.indigo {
-  background: var(--accent-primary);
 }
 
 .event-name {
