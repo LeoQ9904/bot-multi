@@ -3,6 +3,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
+import { EventEmitter2 } from '@nestjs/event-emitter';
+
 @Injectable()
 export class SchedulerService {
     private readonly logger = new Logger(SchedulerService.name);
@@ -10,6 +12,7 @@ export class SchedulerService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly notificationsService: NotificationsService,
+        private readonly eventEmitter: EventEmitter2
     ) { }
 
     /**
@@ -116,6 +119,13 @@ export class SchedulerService {
                 btn_one_url: `/task?view=${task.id}`
             }
         );
+
+        // Emit event for other integrations (e.g., Telegram)
+        this.eventEmitter.emit('notification.send', {
+            userId: job.userId,
+            channel: 'TELEGRAM',
+            message: `Recordatorio de Tarea: ${task.title}`,
+        });
     }
 
     private async handleDailySummary(job: any) {

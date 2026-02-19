@@ -57,10 +57,28 @@ export class IntegrationsService {
         return integration;
     }
 
+    async findOneByUserIdAndType(userId: string, type: string) {
+        return this.prisma.integration.findFirst({
+            where: { userId, type },
+        });
+    }
+
     async remove(id: string, userId: string) {
         await this.findOne(id, userId);
         return this.prisma.integration.delete({
             where: { id },
+        });
+    }
+
+    async updateIdTelegram(idTelegram: number, userId: string, type: string = 'TELEGRAM') {
+        const integration = await this.prisma.integration.findFirst({
+            where: { userId, type },
+        });
+        const config: any = integration?.config;
+        config.idTelegram = idTelegram;
+        return this.prisma.integration.update({
+            where: { id: integration?.id },
+            data: { config },
         });
     }
 }

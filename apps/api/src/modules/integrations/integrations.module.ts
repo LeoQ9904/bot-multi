@@ -9,6 +9,6 @@ import { AIModule } from '../ai/ai.module';
     imports: [AIModule],
     providers: [IntegrationsService, TelegramService, PrismaService],
     controllers: [IntegrationsController],
-    exports: [IntegrationsService],
+    exports: [IntegrationsService, TelegramService],
 })
 export class IntegrationsModule { }
