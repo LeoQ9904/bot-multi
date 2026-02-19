@@ -24,6 +24,30 @@ export const useNotificationService = () => {
                     Authorization: `Bearer ${firebaseToken}`
                 }
             });
+        },
+
+        getNotifications: async (firebaseToken: string) => {
+            return ApiService.get('/notifications', {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
+        },
+
+        markRead: async (id: string, firebaseToken: string) => {
+            return ApiService.patch(`/notifications/${id}/read`, {}, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
+        },
+
+        markAllRead: async (firebaseToken: string) => {
+            return ApiService.post('/notifications/read-all', {}, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
         }
     };
 };

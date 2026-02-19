@@ -32,21 +32,46 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, watch } from 'vue';
 import { useNotificationStore } from '~/stores/notification.store';
+import { useFirebaseAuth } from '~/composables/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-defineProps<{
+const props = defineProps<{
     isOpen: boolean;
 }>();
 
 const notificationStore = useNotificationStore();
+const { user, loading: authLoading } = useFirebaseAuth();
+
+// Fetch notifications when the component is mounted
+onMounted(() => {
+    if (!authLoading.value && user.value) {
+        notificationStore.fetchNotifications();
+    }
+});
+
+// Watch for auth settling to fetch
+watch([user, authLoading], ([newUser, loading]) => {
+    if (!loading && newUser) {
+        notificationStore.fetchNotifications();
+    }
+}, { immediate: true });
+
+// Also fetch when opened to ensure fresh data
+watch(() => props.isOpen, (isOpen) => {
+    if (isOpen) {
+        notificationStore.fetchNotifications();
+    }
+});
 
 const markRead = (id: string) => {
     notificationStore.markAsRead(id);
 };
 
 const formatTime = (timestamp: number) => {
+    if (!timestamp) return '';
     return formatDistanceToNow(timestamp, { addSuffix: true, locale: es });
 };
 </script>
