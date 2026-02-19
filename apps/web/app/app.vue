@@ -236,9 +236,12 @@
 import { nextTick, ref, onMounted } from 'vue';
 import { useSidebar } from '~/composables/useSidebar';
 
+import { usePushNotifications } from '~/composables/usePushNotifications';
+
 const { user, loading, loginWithGoogle, syncProfile } = useFirebaseAuth();
 const { isLoading, loadingTitle, loadingMessage } = useLoading();
 const { isCollapsed } = useSidebar();
+const { initMessaging } = usePushNotifications();
 
 // Theme management
 const isDarkMode = ref(true);
@@ -249,6 +252,9 @@ onMounted(() => {
   if (savedTheme) {
     isDarkMode.value = savedTheme === 'dark';
   }
+
+  // Initialize FCM
+  initMessaging();
 });
 
 const toggleTheme = (value: boolean) => {

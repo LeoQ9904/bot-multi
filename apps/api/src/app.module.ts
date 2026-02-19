@@ -8,6 +8,7 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { NotesModule } from './modules/notes/notes.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { NotesModule } from './modules/notes/notes.module';
     IntegrationsModule,
     UsersModule,
     TasksModule,
-    NotesModule
+    NotesModule,
+    NotificationsModule
   ],
   controllers: [AppController],
   providers: [AppService],

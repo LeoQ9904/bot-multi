@@ -11,9 +11,13 @@
           <button class="icon-btn" @click="toggleTheme">
             <span class="material-symbols-outlined">{{ isDark ? 'light_mode' : 'dark_mode' }}</span>
           </button>
-          <button class="icon-btn">
-            <span class="material-symbols-outlined">notifications</span>
-          </button>
+          <div class="notification-wrapper">
+            <button class="icon-btn" @click="isNotificationsOpen = !isNotificationsOpen">
+              <span class="material-symbols-outlined">notifications</span>
+              <span class="badge" v-if="notificationStore.unreadCount > 0">{{ notificationStore.unreadCount }}</span>
+            </button>
+            <NotificationPopover :isOpen="isNotificationsOpen" />
+          </div>
           <div class="user-avatar">
             <img :src="userPhoto" alt="Avatar" v-if="userPhoto">
             <span class="material-symbols-outlined" v-else>person</span>
@@ -49,13 +53,19 @@ import { useFirebaseAuth } from '~/composables/useAuth';
 import DashboardRecentTasks from '~/components/dashboard/DashboardRecentTasks.vue';
 import DashboardRecentNotes from '~/components/dashboard/DashboardRecentNotes.vue';
 import DashboardDailyContext from '~/components/dashboard/DashboardDailyContext.vue';
+import NotificationPopover from '~/components/notifications/NotificationPopover.vue';
+import { useNotificationStore } from '~/stores/notification.store';
+import { usePushNotifications } from '~/composables/usePushNotifications';
 
 const taskStore = useTaskStore();
 const noteStore = useNoteStore();
+const notificationStore = useNotificationStore();
+const { requestPermission } = usePushNotifications();
 const { user } = useFirebaseAuth();
 
 // State
 const isDark = ref(false); // Todo: implement proper theme store
+const isNotificationsOpen = ref(false);
 
 // Computed
 const greeting = computed(() => {
@@ -117,6 +127,9 @@ onMounted(async () => {
     taskStore.fetchTasks(),
     noteStore.fetchNotes()
   ]);
+
+  // Request push permission
+  await requestPermission();
 });
 
 // Actions
@@ -180,6 +193,29 @@ const toggleTheme = () => {
 .icon-btn:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--accent-primary);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid var(--bg-secondary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .user-avatar {

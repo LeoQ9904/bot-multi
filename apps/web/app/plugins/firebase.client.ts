@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getMessaging } from 'firebase/messaging';
 
 export default defineNuxtPlugin((nuxtApp) => {
     const runtimeConfig = useRuntimeConfig();
@@ -15,10 +16,12 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const messaging = import.meta.client ? getMessaging(app) : null;
 
     return {
         provide: {
             auth,
+            messaging,
         },
     };
 });
