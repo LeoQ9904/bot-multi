@@ -27,8 +27,11 @@ export const usePushNotifications = () => {
     };
 
     const retrieveToken = async () => {
-
-        if (!import.meta.client || !$messaging || !user.value) return;
+        if (!import.meta.client || !user.value) return;
+        if (!$messaging) {
+            console.warn('[usePushNotifications] Messaging is not supported/initialized. Token retrieval skipped.');
+            return;
+        }
 
         try {
             const currentToken = await getToken($messaging as any, {
@@ -40,7 +43,7 @@ export const usePushNotifications = () => {
                 const idToken = await user.value.getIdToken();
                 await notificationService.registerToken(currentToken, idToken);
             } else {
-                console.warn('[usePushNotifications] No registration token available. Request permission to generate one.');
+                console.warn('[usePushNotifications] No registration token available.');
             }
         } catch (error) {
             console.error('[usePushNotifications] An error occurred while retrieving token:', error);
@@ -48,7 +51,11 @@ export const usePushNotifications = () => {
     };
 
     const initMessaging = () => {
-        if (!import.meta.client || !$messaging) return;
+        if (!import.meta.client) return;
+        if (!$messaging) {
+            console.log('[usePushNotifications] Messaging not supported/initialized. Foreground listener skipped.');
+            return;
+        }
 
         onMessage($messaging as any, (payload) => {
             console.log('[usePushNotifications] Foreground message received:', payload);
@@ -59,7 +66,6 @@ export const usePushNotifications = () => {
                     data: payload.data
                 });
 
-                // Show a browser notification even in foreground if desired
                 new Notification(payload.notification.title || 'Aether', {
                     body: payload.notification.body,
                     icon: '/favicon.ico'
@@ -69,11 +75,12 @@ export const usePushNotifications = () => {
     };
 
     const cleanupTokens = async () => {
-        if (!import.meta.client || !$messaging || !user.value) return;
+        if (!import.meta.client || !user.value) return;
+        if (!$messaging) return;
 
         try {
             const currentToken = await getToken($messaging as any, {
-                vapidKey: 'BIBntEHyDkEEMKoWeKYiF67Ri8FV0ods74tRnQaOS7KHmowaEivGApb510_rOF3LIdKd-51YXtifhNhhrFc7qu0'
+                vapidKey: runtimeConfig.public.vapidKey
             });
 
             if (currentToken) {
