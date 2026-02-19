@@ -43,6 +43,11 @@ export const useFirebaseAuth = () => {
 
     const logout = async () => {
         try {
+            // Cleanup FCM tokens before logout
+            const { cleanupTokens } = await import('~/composables/usePushNotifications')
+                .then(m => m.usePushNotifications());
+            await cleanupTokens();
+
             await signOut($auth);
             user.value = null;
             console.log('[useFirebaseAuth] Logged out.');

@@ -66,9 +66,29 @@ export const usePushNotifications = () => {
         });
     };
 
+    const cleanupTokens = async () => {
+        if (!import.meta.client || !$messaging || !user.value) return;
+
+        try {
+            const currentToken = await getToken($messaging as any, {
+                vapidKey: 'BIBntEHyDkEEMKoWeKYiF67Ri8FV0ods74tRnQaOS7KHmowaEivGApb510_rOF3LIdKd-51YXtifhNhhrFc7qu0'
+            });
+
+            if (currentToken) {
+                console.log('[usePushNotifications] Unregistering token before logout...');
+                const idToken = await user.value.getIdToken();
+                await notificationService.unregisterToken(currentToken, idToken);
+                console.log('[usePushNotifications] Token unregistered successfully.');
+            }
+        } catch (error) {
+            console.error('[usePushNotifications] Error during token cleanup:', error);
+        }
+    };
+
     return {
         requestPermission,
         retrieveToken,
-        initMessaging
+        initMessaging,
+        cleanupTokens
     };
 };

@@ -51,4 +51,21 @@ export class UsersService {
             }
         });
     }
+
+    async removeFcmToken(userId: string, token: string): Promise<User> {
+        const user = await this.findById(userId);
+        if (!user) throw new Error('User not found');
+
+        const currentTokens = user.fcmTokens || [];
+        if (!currentTokens.includes(token)) return user;
+
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                fcmTokens: {
+                    set: currentTokens.filter(t => t !== token)
+                }
+            }
+        });
+    }
 }

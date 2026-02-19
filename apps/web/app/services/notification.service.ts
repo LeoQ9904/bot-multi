@@ -16,6 +16,14 @@ export const useNotificationService = () => {
                     Authorization: `Bearer ${firebaseToken}`
                 }
             });
+        },
+
+        unregisterToken: async (token: string, firebaseToken: string) => {
+            return ApiService.post('/users/fcm-token/unregister', { token }, {
+                headers: {
+                    Authorization: `Bearer ${firebaseToken}`
+                }
+            });
         }
     };
 };

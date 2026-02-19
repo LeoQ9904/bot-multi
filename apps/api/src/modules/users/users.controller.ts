@@ -18,4 +18,11 @@ export class UsersController {
         console.log(`[UsersController] Registering FCM token for user ${req.user.email} (${req.user.id}): ${token.substring(0, 10)}...`);
         return this.usersService.addFcmToken(req.user.id, token);
     }
+
+    @UseGuards(FirebaseGuard)
+    @Post('fcm-token/unregister')
+    async unregisterFcmToken(@Req() req: any, @Body('token') token: string) {
+        console.log(`[UsersController] Unregistering FCM token for user ${req.user.email} (${req.user.id}): ${token.substring(0, 10)}...`);
+        return this.usersService.removeFcmToken(req.user.id, token);
+    }
 }
