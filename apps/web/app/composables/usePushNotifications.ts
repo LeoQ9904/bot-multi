@@ -8,6 +8,7 @@ export const usePushNotifications = () => {
     const notificationStore = useNotificationStore();
     const notificationService = useNotificationService();
     const { user } = useFirebaseAuth();
+    const runtimeConfig = useRuntimeConfig();
 
     const requestPermission = async () => {
         if (!import.meta.client || !('Notification' in window)) return;
@@ -26,11 +27,12 @@ export const usePushNotifications = () => {
     };
 
     const retrieveToken = async () => {
+
         if (!import.meta.client || !$messaging || !user.value) return;
 
         try {
             const currentToken = await getToken($messaging as any, {
-                vapidKey: 'BIBntEHyDkEEMKoWeKYiF67Ri8FV0ods74tRnQaOS7KHmowaEivGApb510_rOF3LIdKd-51YXtifhNhhrFc7qu0'
+                vapidKey: runtimeConfig.public.vapidKey
             });
 
             if (currentToken) {
