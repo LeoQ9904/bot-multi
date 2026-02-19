@@ -48,8 +48,8 @@ const menuItems = [
   { label: 'Task', icon: 'task_alt', path: '/task' },
   { label: 'Notes', icon: 'note', path: '/notes' },
   { label: 'Expenses', icon: 'paid', path: '/expenses' },
-  { label: 'Calendar', icon: 'calendar_month', path: '/calendar' },
-  { label: 'Insights', icon: 'analytics', path: '/insights' },
+  // { label: 'Calendar', icon: 'calendar_month', path: '/calendar' },
+  // { label: 'Insights', icon: 'analytics', path: '/insights' },
 ];
 
 const themes = [
@@ -188,11 +188,19 @@ onMounted(() => {
         <Logo class="mobile-logo" />
         <span>Aether</span>
       </div>
-      <div class="user-avatar-mobile" @click="openSettings">
-        <img v-if="user?.photoURL" :src="user.photoURL || undefined" :alt="user.displayName || 'User'"
-          class="avatar-img" />
-        <div v-else class="avatar-fallback">
-          {{ user?.displayName?.[0]?.toUpperCase() || 'U' }}
+      <div class="" style="display: flex; gap: 0.5rem; align-items: center;">
+        <button class="icon-btn" @click="toggleTheme(isDarkMode ? 'light' : 'dark')">
+          <span class="material-symbols-outlined">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</span>
+        </button>
+        <button class="icon-btn">
+          <span class="material-symbols-outlined">notifications</span>
+        </button>
+        <div class="user-avatar-mobile" @click="openSettings">
+          <img v-if="user?.photoURL" :src="user.photoURL || undefined" :alt="user.displayName || 'User'"
+            class="avatar-img" />
+          <div v-else class="avatar-fallback">
+            {{ user?.displayName?.[0]?.toUpperCase() || 'U' }}
+          </div>
         </div>
       </div>
     </header>
@@ -253,22 +261,13 @@ onMounted(() => {
     <!-- Mobile Footer Navigation -->
     <nav class="mobile-footer-nav">
       <ul class="mobile-menu-list">
-        <li v-for="item in menuItems.slice(0, 4)" :key="item.path" class="mobile-menu-item">
+        <li v-for="item in menuItems.slice(0, 5)" :key="item.path" class="mobile-menu-item">
           <NuxtLink :to="item.path" class="mobile-menu-link" :class="{ active: isActive(item.path) }">
             <span class="material-symbols-outlined">{{ item.icon }}</span>
           </NuxtLink>
         </li>
-        <li class="mobile-menu-item">
-          <button class="mobile-menu-link" :class="{ active: isMoreLinksOpen }" style="cursor: pointer;"
-            @click="openMoreLinks" @blur="closeMoreLinks">
-            <span class="material-symbols-outlined">apps</span>
-          </button>
-        </li>
       </ul>
     </nav>
-
-    <FabMoreLinks v-if="isMoreLinksOpen" @chat="openSettings" @manual="openSettings" />
-
 
     <!-- Refactored Settings Modal -->
     <SettingsModal :is-open="isSettingsOpen" v-model:current-tab="currentTab" @close="closeSettings" @logout="logout">
@@ -293,7 +292,7 @@ onMounted(() => {
   top: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  height: 50px;
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--glass-border);
@@ -616,7 +615,7 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 55px;
+  height: 40px;
   background: var(--glass-bg);
   backdrop-filter: blur(16px);
   border-top: 1px solid var(--glass-border);
@@ -654,7 +653,7 @@ onMounted(() => {
 }
 
 .mobile-menu-link .material-symbols-outlined {
-  font-size: 2rem;
+  font-size: 1.7rem;
 }
 
 .mobile-menu-link.active {
@@ -801,5 +800,24 @@ onMounted(() => {
   .mobile-footer-nav {
     display: block;
   }
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 0px solid var(--glass-border);
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 </style>
