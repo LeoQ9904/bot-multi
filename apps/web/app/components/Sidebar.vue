@@ -12,9 +12,11 @@ import IdentityTab from './settings/IdentityTab.vue';
 import IntegrationsTab from './settings/IntegrationsTab.vue';
 import FabMoreLinks from './FabMoreLinks.vue';
 import { useSidebar } from '~/composables/useSidebar';
+import { useNotificationStore } from '~/stores/notification.store';
 
 const { isCollapsed, toggleSidebar } = useSidebar();
 const { logout, user } = useFirebaseAuth();
+const notificationStore = useNotificationStore();
 const route = useRoute();
 
 const isDarkMode = ref(true);
@@ -29,7 +31,8 @@ const { success, error: toastError } = useToast();
 const identity = ref({
   name: '',
   greeting: '',
-  personality: ''
+  personality: '',
+  interests: ''
 });
 const isSavingIdentity = ref(false);
 
@@ -177,6 +180,10 @@ onMounted(() => {
   const savedTheme = localStorage.getItem('aether-theme') || 'dark';
   selectedTheme.value = savedTheme;
   isDarkMode.value = savedTheme === 'dark';
+  if (user.value) {
+    console.log('[app.vue] onMounted: User is authenticated, fetching notifications...');
+    notificationStore.fetchNotifications();
+  }
 });
 </script>
 
@@ -192,8 +199,9 @@ onMounted(() => {
         <button class="icon-btn" @click="toggleTheme(isDarkMode ? 'light' : 'dark')">
           <span class="material-symbols-outlined">{{ isDarkMode ? 'light_mode' : 'dark_mode' }}</span>
         </button>
-        <button class="icon-btn">
+        <button class="icon-btn" @click="notificationStore.togglePanel(true)">
           <span class="material-symbols-outlined">notifications</span>
+          <span class="badge-dot" v-if="notificationStore.unreadCount > 0"></span>
         </button>
         <div class="user-avatar-mobile" @click="openSettings">
           <img v-if="user?.photoURL" :src="user.photoURL || undefined" :alt="user.displayName || 'User'"
@@ -819,5 +827,20 @@ onMounted(() => {
 .icon-btn:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.badge-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  background-color: var(--accent-primary);
+  border: 2px solid var(--bg-secondary);
+  border-radius: 50%;
+}
+
+.icon-btn {
+  position: relative;
 }
 </style>

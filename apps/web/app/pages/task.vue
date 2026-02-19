@@ -47,51 +47,22 @@
       <FabNew @chat="handleChatTask" @manual="handleManualTask" iaText="Tarea por Chat" manualText="Manual" />
     </main>
 
+    <!-- Desktop Side Column (Hidden on Mobile) -->
+    <aside class="right-aside desktop-only">
+      <TaskAsideContent :insightText="insightText" :hoursToday="hoursToday" :taskCompleted="taskCompleted"
+        :taskPending="taskPending" />
+    </aside>
+
     <!-- Mobile Sidebar Toggle -->
     <button class="mobile-sidebar-toggle" @click="isMobileSidebarOpen = true">
       <span class="material-symbols-outlined">analytics</span>
     </button>
 
-    <!-- Overlay logic -->
-    <div v-if="isMobileSidebarOpen" class="sidebar-overlay" @click="isMobileSidebarOpen = false"></div>
-
-    <!-- Right Sidebar -->
-    <aside class="right-aside" :class="{ 'mobile-open': isMobileSidebarOpen }">
-      <div class="insight-card" v-if="insightText">
-        <div class="insight-header">
-          <span class="material-symbols-outlined">analytics</span>
-          <span class="insight-label">IA Insight</span>
-        </div>
-        <div v-html="insightText" class="insight-text"></div>
-      </div>
-
-      <div class="metrics-section">
-        <h3 class="aside-section-title">Métricas de Hoy</h3>
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <span class="metric-value">{{ hoursToday }} </span>
-            <span class="metric-label">Trabajo Estimado</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-value">{{ taskCompleted }}</span>
-            <span class="metric-label">Tareas Completadas</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="events-section">
-        <h3 class="aside-section-title">Próximos Eventos</h3>
-        <div class="events-list">
-          <div v-for="event in taskPending" :key="event.id" class="event-item">
-            <div class="event-indicator" :style="{ background: event.tagColor }"></div>
-            <div class="event-info">
-              <p class="event-name">{{ event.title }}</p>
-              <p class="event-time">{{ formatStartAt(event.scheduledAt, event.duration) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
+    <!-- Mobile Side Panel -->
+    <BaseSidePanel :show="isMobileSidebarOpen" title="Insights & Métricas" @close="isMobileSidebarOpen = false">
+      <TaskAsideContent :insightText="insightText" :hoursToday="hoursToday" :taskCompleted="taskCompleted"
+        :taskPending="taskPending" />
+    </BaseSidePanel>
 
     <TaskFormModal :is-open="isModalOpen" :initial-data="editingTask" @close="closeModal" @save="handleSaveTask" />
     <TaskDetailModal :is-open="isPreviewOpen" :task="previewingTask" @close="closePreview" @edit="handleEditFromPreview"
@@ -104,6 +75,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import BaseSidePanel from '../components/ui/BaseSidePanel.vue';
+import TaskAsideContent from '../components/tasks/TaskAsideContent.vue';
 import { useTaskStore } from '~/stores/task.store';
 import { useTaskActions } from '~/composables/useTaskActions';
 import TaskFilters from '~/components/tasks/TaskFilters.vue';
@@ -697,190 +670,13 @@ const recomendationAI = async () => {
   border: 1px solid rgba(99, 102, 241, 0.2);
 }
 
-.insight-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--accent-primary);
-  margin-bottom: 0.5rem;
-}
-
-.insight-label {
-  font-size: 0.625rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.insight-text {
-  font-size: 0.7rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.insight-text .highlight {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.mobile-close-btn {
-  display: none;
-  align-self: flex-end;
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-
-.mobile-close-btn:hover {
-  color: var(--text-primary);
-}
-
-.aside-section-title {
-  font-size: 0.6875rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: var(--text-tertiary);
-  margin-bottom: 1rem;
-}
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-}
-
-.metric-card {
-  padding: 1rem;
-  border-radius: 1.25rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  text-align: center;
-}
-
-.metric-value {
-  display: block;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.metric-label {
-  font-size: 0.625rem;
-  font-weight: 700;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: -0.01em;
-}
-
-.events-list {
-  max-height: 55vh;
-  overflow-y: auto;
-}
-
-.event-item {
-  display: flex;
-  gap: 1rem;
-}
-
-.event-indicator {
-  width: 0.25rem;
-  height: 2.5rem;
-  border-radius: 1rem;
-}
-
-.event-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.event-time {
-  font-size: 0.6875rem;
-  color: var(--text-tertiary);
-  margin-top: 0.125rem;
-}
-
-.quick-note-section {
-  margin-top: auto;
-}
-
-.textarea-wrapper {
-  position: relative;
-}
-
-.quick-textarea {
-  width: 100%;
-  height: 6rem;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  border-radius: 1.25rem;
-  padding: 1rem;
-  color: var(--text-primary);
-  font-size: 0.8125rem;
-  resize: none;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.quick-textarea:focus {
-  border-color: var(--accent-primary);
-  background: var(--bg-tertiary);
-}
-
-.send-note-btn {
-  position: absolute;
-  bottom: 0.75rem;
-  right: 0.75rem;
-  background: transparent;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.send-note-btn:hover {
-  color: var(--accent-primary);
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-}
-
 @media (max-width: 1280px) {
   .mobile-sidebar-toggle {
     display: flex;
   }
 
-  .right-aside {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    z-index: 1010;
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
-    width: 300px;
-    background: var(--bg-secondary);
-  }
-
-  .right-aside.mobile-open {
-    transform: translateX(0);
-    gap: 0.5rem;
-    padding: 0.5rem 1.5rem;
-  }
-
-  .mobile-close-btn {
-    display: flex;
+  .desktop-only {
+    display: none;
   }
 }
 

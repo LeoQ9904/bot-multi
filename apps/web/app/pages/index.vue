@@ -12,11 +12,10 @@
             <span class="material-symbols-outlined">{{ isDark ? 'light_mode' : 'dark_mode' }}</span>
           </button>
           <div class="notification-wrapper">
-            <button class="icon-btn" @click="isNotificationsOpen = !isNotificationsOpen">
+            <button class="icon-btn" @click="notificationStore.togglePanel(true)">
               <span class="material-symbols-outlined">notifications</span>
               <span class="badge" v-if="notificationStore.unreadCount > 0">{{ notificationStore.unreadCount }}</span>
             </button>
-            <NotificationPopover :isOpen="isNotificationsOpen" />
           </div>
           <div class="user-avatar">
             <img :src="userPhoto" alt="Avatar" v-if="userPhoto">
@@ -53,7 +52,6 @@ import { useFirebaseAuth } from '~/composables/useAuth';
 import DashboardRecentTasks from '~/components/dashboard/DashboardRecentTasks.vue';
 import DashboardRecentNotes from '~/components/dashboard/DashboardRecentNotes.vue';
 import DashboardDailyContext from '~/components/dashboard/DashboardDailyContext.vue';
-import NotificationPopover from '~/components/notifications/NotificationPopover.vue';
 import { useNotificationStore } from '~/stores/notification.store';
 import { usePushNotifications } from '~/composables/usePushNotifications';
 

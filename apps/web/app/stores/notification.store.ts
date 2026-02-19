@@ -15,6 +15,7 @@ export const useNotificationStore = defineStore('notifications', {
     state: () => ({
         notifications: [] as NotificationItem[],
         loading: false,
+        isPanelOpen: false,
     }),
 
     getters: {
@@ -23,6 +24,9 @@ export const useNotificationStore = defineStore('notifications', {
     },
 
     actions: {
+        togglePanel(open?: boolean) {
+            this.isPanelOpen = open !== undefined ? open : !this.isPanelOpen;
+        },
         async fetchNotifications() {
             const { user, loading: authLoading } = useFirebaseAuth();
             const notificationService = useNotificationService();

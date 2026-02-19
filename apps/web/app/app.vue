@@ -4,7 +4,8 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
     rel="stylesheet" />
-  <div class="app-shell" :class="{ 'light-theme': !isDarkMode }">
+  <div class="app-shell">
+    <NotificationPanel />
     <Sidebar v-if="user" @displayTheme="toggleTheme" />
 
     <main v-if="user" :class="{ 'with-sidebar': user, 'mobile-layout': true, 'sidebar-collapsed': isCollapsed }">
@@ -233,20 +234,30 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, onMounted } from 'vue';
+import { nextTick, ref, onMounted, computed } from 'vue';
+import { useHead } from '#imports';
 import { useSidebar } from '~/composables/useSidebar';
 
 import { usePushNotifications } from '~/composables/usePushNotifications';
+import NotificationPanel from './components/notifications/NotificationPanel.vue';
 
 const { user, loading, loginWithGoogle, syncProfile } = useFirebaseAuth();
 const { isLoading, loadingTitle, loadingMessage } = useLoading();
 const { isCollapsed } = useSidebar();
 const { initMessaging } = usePushNotifications();
 
+
+
 // Theme management
 const isDarkMode = ref(true);
 
-onMounted(() => {
+useHead({
+  bodyAttrs: {
+    class: computed(() => isDarkMode.value ? '' : 'light-theme')
+  }
+});
+
+onMounted(async () => {
   // Load theme preference from localStorage
   const savedTheme = localStorage.getItem('aether-theme');
   if (savedTheme) {
