@@ -10,16 +10,21 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { NotesModule } from './modules/notes/notes.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 
+import { ScheduleModule } from '@nestjs/schedule';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     FirebaseAdminModule,
     AIModule,
     IntegrationsModule,
     UsersModule,
     TasksModule,
     NotesModule,
-    NotificationsModule
+    NotificationsModule,
+    SchedulerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

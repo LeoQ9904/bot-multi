@@ -20,25 +20,40 @@ model User {
   tasks         Task[]
   notes         Note[]
   notifications Notification[]
+  scheduledJobs ScheduledJob[]
 }
 
 model Task {
-  id          String    @id @default(uuid())
+  id          String         @id @default(uuid())
   userId      String
   title       String
   project     String?
   description String?
   category    String
-  status      String    @default("pending")
-  priority    Int       @default(1)
-  duration    String    @default("30 min")
-  tagColor    String    @default("blue")
+  status      String         @default("pending")
+  priority    Int            @default(1)
+  duration    String         @default("30 min")
+  tagColor    String         @default("blue")
   scheduledAt DateTime
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   startedAt   DateTime?
   completedAt DateTime?
-  user        User      @relation(fields: [userId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
+}
+
+model ScheduledJob {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  type         String   // e.g., "TASK_REMINDER", "DAILY_SUMMARY"
+  scheduledFor DateTime
+  status       String   @default("pending") // pending, completed, failed
+  metadata     Json?    // e.g., { taskId: "..." }
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([scheduledFor, status])
 }
 
 model Integration {
