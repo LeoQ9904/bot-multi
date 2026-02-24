@@ -6,7 +6,7 @@
     rel="stylesheet" />
   <div class="app-shell">
     <NotificationPanel />
-    <Sidebar v-if="user" @displayTheme="toggleTheme" />
+    <Sidebar v-if="user" />
 
     <main v-if="user" :class="{ 'with-sidebar': user, 'mobile-layout': true, 'sidebar-collapsed': isCollapsed }">
       <NuxtPage />
@@ -249,29 +249,13 @@ const { initMessaging } = usePushNotifications();
 
 
 // Theme management
-const isDarkMode = ref(true);
-
-useHead({
-  bodyAttrs: {
-    class: computed(() => isDarkMode.value ? '' : 'light-theme')
-  }
-});
+const { isDarkMode } = useTheme();
 
 onMounted(async () => {
-  // Load theme preference from localStorage
-  const savedTheme = localStorage.getItem('aether-theme');
-  if (savedTheme) {
-    isDarkMode.value = savedTheme === 'dark';
-  }
-
   // Initialize FCM
   initMessaging();
 });
 
-const toggleTheme = (value: boolean) => {
-  isDarkMode.value = value;
-  localStorage.setItem('aether-theme', isDarkMode.value ? 'dark' : 'light');
-};
 
 const handleLogin = async () => {
   try {

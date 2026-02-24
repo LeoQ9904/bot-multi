@@ -13,16 +13,17 @@ import IntegrationsTab from './settings/IntegrationsTab.vue';
 import FabMoreLinks from './FabMoreLinks.vue';
 import { useSidebar } from '~/composables/useSidebar';
 import { useNotificationStore } from '~/stores/notification.store';
+import { useTheme } from '~/composables/useTheme';
 
 const { isCollapsed, toggleSidebar } = useSidebar();
 const { logout, user } = useFirebaseAuth();
 const notificationStore = useNotificationStore();
 const route = useRoute();
+const { isDarkMode, toggleTheme: cycleTheme, setTheme } = useTheme();
+const selectedTheme = computed(() => isDarkMode.value ? 'dark' : 'light');
 
-const isDarkMode = ref(true);
 const isSettingsOpen = ref(false);
 const isMoreLinksOpen = ref(false);
-const selectedTheme = ref('dark');
 const currentTab = ref('appearance');
 
 const { success, error: toastError } = useToast();
@@ -43,8 +44,6 @@ const isConnecting = ref<Record<string, boolean>>({});
 const isDeleting = ref<Record<string, boolean>>({});
 const confirmDeleteId = ref<string | null>(null);
 
-const emit = defineEmits(['displayTheme']);
-
 const menuItems = [
   { label: 'Inicio', icon: 'home_app_logo', path: '/' },
   { label: 'Chat', icon: 'chat', path: '/chat' },
@@ -63,10 +62,7 @@ const themes = [
 const isActive = (path: string) => route.path === path;
 
 const toggleTheme = (theme: string) => {
-  selectedTheme.value = theme;
-  isDarkMode.value = theme === 'dark';
-  localStorage.setItem('aether-theme', theme);
-  emit('displayTheme', isDarkMode.value);
+  setTheme(theme as 'dark' | 'light');
 };
 
 const openSettings = () => {
@@ -177,9 +173,6 @@ const deleteIntegration = async (id: string, type: string) => {
 };
 
 onMounted(() => {
-  const savedTheme = localStorage.getItem('aether-theme') || 'dark';
-  selectedTheme.value = savedTheme;
-  isDarkMode.value = savedTheme === 'dark';
   if (user.value) {
     console.log('[app.vue] onMounted: User is authenticated, fetching notifications...');
     notificationStore.fetchNotifications();
