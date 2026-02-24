@@ -7,10 +7,9 @@
         <!-- Mobile: Carousel con snap -->
         <template v-if="!loading">
             <div class="context-carousel" ref="carouselRef" @scroll="onScroll">
-                <div v-for="(item, index) in contextItems" :key="index" class="context-card"
-                    :class="[item.type, item.colorClass, { clickable: !!item.link }]"
-                    @click="item.link ? openLink(item.link) : null" @mouseenter="hoveredIndex = index"
-                    @mouseleave="hoveredIndex = null">
+                <div v-for="(item, index) in contextItems" :key="index" class="context-card clickable"
+                    :class="[item.type, item.colorClass]" @mouseenter="hoveredIndex = index"
+                    @mouseleave="hoveredIndex = null" @click="toogleModal(item)">
                     <!-- Glow de fondo -->
                     <div class="card-glow"></div>
 
@@ -19,7 +18,7 @@
                             <span class="material-symbols-outlined">{{ item.icon }}</span>
                         </div>
                         <span class="card-tag">{{ item.tag }}</span>
-                        <span v-if="item.link" class="card-link-icon material-symbols-outlined">open_in_new</span>
+                        <span class="card-link-icon material-symbols-outlined">open_in_new</span>
                     </div>
 
                     <div class="card-body">
@@ -74,6 +73,40 @@
             </div>
         </div>
 
+        <BaseModal :show="showModal" @close="showModal = false" :maxWidth="'500px'" :showClose="false">
+            <template #header>
+                <div class="modal-theme-header" :class="contextSelected?.colorClass">
+                    <div class="modal-header-visual">
+                        <div class="modal-header-glow"></div>
+                        <div class="modal-header-icon">
+                            <span class="material-symbols-outlined">{{ contextSelected?.icon }}</span>
+                        </div>
+                    </div>
+                    <div class="modal-header-info">
+                        <span class="modal-tag">{{ contextSelected?.tag }}</span>
+                        <h2 class="modal-theme-title">{{ contextSelected?.title }}</h2>
+                    </div>
+                </div>
+            </template>
+
+            <div class="modal-theme-body" :class="contextSelected?.colorClass">
+                <p class="modal-description">{{ contextSelected?.description }}</p>
+            </div>
+
+            <template #footer>
+                <div class="modal-theme-footer" :class="contextSelected?.colorClass">
+                    <span v-if="contextSelected?.footer" class="modal-footer-note">{{ contextSelected?.footer }}</span>
+                    <div class="modal-footer-actions">
+                        <button v-if="contextSelected?.link" @click="openLink(contextSelected.link)"
+                            class="btn-primary-action">
+                            <span>Explorar</span>
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                        </button>
+                        <button @click="showModal = false" class="btn-text-close">Cerrar</button>
+                    </div>
+                </div>
+            </template>
+        </BaseModal>
     </section>
 </template>
 
@@ -81,12 +114,15 @@
 import { ref } from 'vue'
 import type { Interests } from '~/interfaces';
 import { useIaService } from '~/services/ia.service';
+import BaseModal from '../ui/BaseModal.vue';
 
 const carouselRef = ref<HTMLElement | null>(null)
 const hoveredIndex = ref<number | null>(null)
 const activeDot = ref(0)
 const contextItems = ref<Interests[]>([])
 const loading = ref(false)
+const showModal = ref(false)
+const contextSelected = ref<Interests | null>(null)
 
 const fetchAllSettings = async () => {
     const { user } = useFirebaseAuth();
@@ -121,6 +157,11 @@ const scrollToCard = (index: number) => {
     if (!carouselRef.value) return
     const cardWidth = carouselRef.value.scrollWidth / contextItems.value.length
     carouselRef.value.scrollTo({ left: cardWidth * index, behavior: 'smooth' })
+}
+
+const toogleModal = (item: Interests) => {
+    contextSelected.value = item
+    showModal.value = !showModal.value
 }
 
 onMounted(() => {
@@ -613,5 +654,236 @@ onMounted(() => {
 
 .light-theme .skeleton-icon {
     background: var(--bg-tertiary) !important;
+}
+
+/* ─────────────────────────────────────────
+   MODAL IMPROVEMENTS (THEME-AWARE)
+   Note: Targeted via classes passed to BaseModal slots
+───────────────────────────────────────── */
+
+/* Para que los estilos lleguen a los slots si BaseModal es scoped */
+:deep(.modal-container) {
+    overflow: hidden;
+    border-radius: 24px;
+}
+
+:deep(.modal-header) {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+:deep(.modal-body) {
+    padding: 0 !important;
+}
+
+:deep(.modal-footer) {
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Header UI */
+.modal-theme-header {
+    width: 100%;
+    padding: 2.5rem 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-secondary);
+}
+
+.modal-header-visual {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.modal-header-glow {
+    position: absolute;
+    inset: -15px;
+    background: var(--card-glow, var(--accent-primary));
+    filter: blur(20px);
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: pulse 3s infinite;
+}
+
+.modal-header-icon {
+    width: 100%;
+    height: 100%;
+    background: var(--icon-bg, var(--bg-tertiary));
+    border: 1px solid var(--card-border, var(--glass-border));
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+}
+
+.modal-header-icon .material-symbols-outlined {
+    font-size: 2.25rem;
+    color: var(--card-accent, var(--accent-primary));
+}
+
+.modal-header-info {
+    position: relative;
+    z-index: 1;
+}
+
+.modal-tag {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--tag-color, var(--text-tertiary));
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.modal-theme-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Body UI */
+.modal-theme-body {
+    padding: 1.5rem 2rem 2.5rem;
+    background: var(--bg-secondary);
+}
+
+.modal-description {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin: 0;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+/* Footer UI */
+.modal-theme-footer {
+    padding: 1.5rem 2rem;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.modal-footer-note {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-footer-note::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--card-accent, var(--accent-primary));
+}
+
+.modal-footer-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.btn-primary-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, var(--card-accent, var(--accent-primary)), var(--accent-secondary));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px var(--card-glow, var(--glow));
+}
+
+.btn-primary-action:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.1);
+    box-shadow: 0 6px 16px var(--card-glow, var(--glow));
+}
+
+.btn-text-close {
+    padding: 0.75rem 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-text-close:hover {
+    color: var(--text-primary);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: scale(1.15);
+        opacity: 0.4;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-theme-header {
+        padding: 2rem 1.5rem 1rem;
+    }
+
+    .modal-theme-body {
+        padding: 1rem 1.5rem 2rem;
+    }
+
+    .modal-theme-footer {
+        flex-direction: column;
+        padding: 1.5rem;
+        gap: 1.25rem;
+    }
+
+    .modal-footer-actions {
+        width: 100%;
+    }
+
+    .btn-primary-action,
+    .btn-text-close {
+        flex: 1;
+        justify-content: center;
+    }
 }
 </style>

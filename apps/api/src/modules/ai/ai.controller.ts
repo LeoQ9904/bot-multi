@@ -77,7 +77,7 @@ export class AIController {
       }
     ]
       **IMPORTANT**: solo responde con el formato JSON, no agregues nada más.
-      **IMPORTANT**: Genere 8 items en total.
+      **IMPORTANT**: Genere 6 items en total.
       **IMPORTANT**: Realice una busqueda in internet, la fecha actual es de ${new Date().toISOString()}.`;
     const response = await this.aiService.generateResponse(
       userId,
