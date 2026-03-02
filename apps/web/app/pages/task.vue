@@ -2,7 +2,7 @@
   <div class="task-page-layout">
     <main class="main-content custom-scrollbar">
 
-      <HeaderPage title="Mis Tareas" subtitle="Acciones rápidas habilitadas" />
+      <HeaderPage title="Mis Tareas" subtitle="Crea, organiza y gestiona tus tareas diarias." />
 
       <TaskFilters v-model="activeFilter" style="margin-bottom: 1rem;" />
 
@@ -30,7 +30,7 @@
         </div>
       </div>
 
-      <div class="sections-container pb-32">
+      <div class="sections-container">
         <TaskSection v-for="(group, sectionName) in filteredGroupedTasks" :key="sectionName"
           :title="String(sectionName)" :tasks="group" @start="startTask($event.id)" @stop="stopTask($event.id)"
           @complete="completeTask($event.id)" @cancel="cancelTask($event.id)" @edit="handleEditClick"
@@ -38,7 +38,8 @@
       </div>
 
       <!-- Enhanced empty state -->
-      <EmptyPage @manual="handleManualTask" @chat="handleChatTask" v-if="taskStore.tasks.length === 0"
+      <EmptyPage @manual="handleManualTask" @chat="handleChatTask"
+        v-if="taskStore.tasks.length === 0 || Object.keys(filteredGroupedTasks).length === 0"
         title="¿Listo para empezar tu día?"
         subtitle="Aún no tienes tareas por aquí. Organiza tus pendientes y deja que Aether te ayude a ser más productivo."
         manualText="Crear mi primera tarea" chatText="Chat con Aether" />
@@ -49,8 +50,7 @@
 
     <!-- Desktop Side Column (Hidden on Mobile) -->
     <aside class="right-aside desktop-only">
-      <TaskAsideContent :insightText="insightText" :hoursToday="hoursToday" :taskCompleted="taskCompleted"
-        :taskPending="taskPending" />
+      <TaskAsideContent />
     </aside>
 
     <!-- Mobile Sidebar Toggle -->
@@ -60,8 +60,7 @@
 
     <!-- Mobile Side Panel -->
     <BaseSidePanel :show="isMobileSidebarOpen" title="Insights & Métricas" @close="isMobileSidebarOpen = false">
-      <TaskAsideContent :insightText="insightText" :hoursToday="hoursToday" :taskCompleted="taskCompleted"
-        :taskPending="taskPending" />
+      <TaskAsideContent />
     </BaseSidePanel>
 
     <TaskFormModal :is-open="isModalOpen" :initial-data="editingTask" @close="closeModal" @save="handleSaveTask" />
@@ -295,8 +294,9 @@ const filteredGroupedTasks = computed(() => {
 
   filtered.sort((a, b) => {
     const factor = activeFilter.value.sortOrder === 'desc' ? -1 : 1;
-    const sortField = activeFilter.value.sortBy;
-    return (a[sortField] - b[sortField]) * factor;
+    const aDate = new Date(a.scheduledAt);
+    const bDate = new Date(b.scheduledAt);
+    return (aDate.getTime() - bDate.getTime()) * factor;
   });
 
   const groups: Record<string, typeof filtered> = { 'Hoy': [], 'Mañana': [], 'Esta Semana': [], 'Ayer': [], 'Próximamente': [], 'Semana pasada': [], 'Más antiguas': [] };
@@ -696,9 +696,5 @@ const recomendationAI = async () => {
     align-items: flex-start;
     gap: 1rem;
   }
-}
-
-.pb-32 {
-  padding-bottom: 8rem;
 }
 </style>

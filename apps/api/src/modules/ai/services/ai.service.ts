@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Inject, forwardRef } from '@nestjs/common';
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
@@ -27,7 +27,9 @@ export class AIService {
     private readonly searchService: SearchService,
     private readonly tasksData: TasksDataService,
     private readonly notesData: NotesDataService,
+    @Inject(forwardRef(() => TasksService))
     private readonly tasksService: TasksService,
+    @Inject(forwardRef(() => NotesService))
     private readonly notesService: NotesService,
   ) {
     this.client = new BedrockRuntimeClient({
@@ -464,5 +466,71 @@ export class AIService {
       }
     }
     return filtered;
+  }
+
+  public async generateTaskSummary(task: any): Promise<string> {
+    const prompt = `Eres un asistente de planeación, tu trabajo es generar un resumen de la tarea que se te proporciona, la tarea es la siguiente: ${task} -- **IMPORTANTE** -- No agregues nada mas que el resumen, como maximo 300 caracteres. **IMPORTANTE** -- Las fechas y horas son dadas un formato iso, con hora global, pero al cliente se le debe que responder en formato local, ten en cuenta que la diferencia horaria es de -5 horas.`;
+    const input: InvokeModelCommandInput = {
+      modelId: this.modelId,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify({
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: 1000,
+        stop_sequences: ["\n\nHuman:", "\n\nUser:", "H:", "User:"],
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      }),
+    };
+    const response = await this.client.send(new InvokeModelCommand(input));
+    const body = JSON.parse(response.body.transformToString());
+    return body.content[0].text;
+  }
+
+  public async generateWorkPlan(tasks: any[], date: string): Promise<string> {
+    const prompt = `Eres un asistente de planeación experto. Tu tarea es sugerir un plan de trabajo detallado y optimizado para el día ${date} basado en la siguiente lista de tareas: ${JSON.stringify(tasks)}.
+    
+    **REGLAS CRÍTICAS**:
+    1. Generar un plan en texto plano.
+    2. Debe incluir una estructura horaria lógica (mañana, tarde, noche).
+    3. Debes priorizar las tareas según su importancia y los horarios de programación establecidos.
+    4. No aluciones con procesos o tareas no programadas. Enfocate en las tareas dadas.
+    5. El texto no debe que exceda los 300 caracteres.
+    6. El horario del cliente de trabajo es de 8:00 AM a 12:00 PM y de 2:00 PM a 5:00 PM.
+    
+    **IMPORTANTE**: Solo responde con el texto plano, sin bloques de código markdown ni texto adicional. Ten en cuenta que la zona horaria del usuario es GMT-5.
+    **IMPORTANTE**: No agregues nada mas que el plan de trabajo.
+    **IMPORTANTE**: Tu mensaje va directo al usuario, necesito que utilices un lenguaje amigable, limpio y organizado, alegre y motivador.
+    `;
+
+    const input: InvokeModelCommandInput = {
+      modelId: this.modelId,
+      contentType: 'application/json',
+      accept: 'application/json',
+      body: JSON.stringify({
+        anthropic_version: 'bedrock-2023-05-31',
+        max_tokens: 2000,
+        stop_sequences: ["\n\nHuman:", "\n\nUser:", "H:", "User:"],
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      }),
+    };
+
+    try {
+      const response = await this.client.send(new InvokeModelCommand(input));
+      const body = JSON.parse(response.body.transformToString());
+      return body.content[0].text;
+    } catch (error) {
+      console.error('Failed to generate work plan in AIService:', error);
+      throw new InternalServerErrorException('Error al generar el plan de trabajo con IA');
+    }
   }
 }

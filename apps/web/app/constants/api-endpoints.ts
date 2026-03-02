@@ -25,6 +25,8 @@ export const TASK_ENDPOINTS = {
     BY_ID: (id: string) => `/tasks/${id}`,
     UPDATE: (id: string) => `/tasks/${id}`,
     DELETE: (id: string) => `/tasks/${id}`,
+    GENERATE_PLAN: '/tasks/plan',
+    GET_PLAN: (date: string) => `/tasks/plan/${date}`,
 } as const;
 
 /**

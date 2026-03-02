@@ -23,6 +23,7 @@
 
         <template #footer>
             <div class="settings-footer">
+                <div id="panel-footer-settings"></div>
                 <button @click="$emit('logout')" class="logout-btn-modal">
                     <span class="material-symbols-outlined">logout</span>
                     Cerrar sesión
@@ -87,6 +88,9 @@ const emit = defineEmits(['close', 'update:currentTab', 'logout']);
 
 .settings-footer {
     padding: 0.5rem 0;
+    display: flex;
+    gap: 1rem;
+    flex-direction: column;
 }
 
 .logout-btn-modal {

@@ -11,8 +11,8 @@ export interface Task {
     priority: TaskPriority;
     duration: string;
     tagColor: string;
-    scheduledAt: number;
-    createdAt: number;
+    scheduledAt: string;
+    createdAt: string;
     startedAt?: string | null;
     completedAt?: string | null;
 }

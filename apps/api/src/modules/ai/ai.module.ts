@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AIService } from './services/ai.service';
 import { AIController } from './ai.controller';
 import { MarkdownMemoryService } from './memory/markdown-memory.service';
@@ -13,7 +13,7 @@ import { TasksModule } from '../tasks/tasks.module';
 import { NotesModule } from '../notes/notes.module';
 
 @Module({
-    imports: [TasksModule, NotesModule],
+    imports: [forwardRef(() => TasksModule), forwardRef(() => NotesModule)],
     providers: [AIService, MarkdownMemoryService, InMemCacheService, DynamicMemoryService, IdentityService, SearchService, TasksDataService, NotesDataService],
     controllers: [AIController, IdentityController],
     exports: [AIService, IdentityService],

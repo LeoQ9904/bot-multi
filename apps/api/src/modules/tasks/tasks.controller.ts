@@ -29,6 +29,18 @@ export class TasksController {
         return this.tasksService.update(req.user.id, id, updateTaskDto);
     }
 
+    @Post('plan')
+    generatePlan(@Req() req: any, @Body('date') date: string) {
+        console.log('Generating plan for date:', date);
+        return this.tasksService.generateDailyPlan(req.user.id, date);
+    }
+
+    @Get('plan/:date')
+    getPlan(@Req() req: any, @Param('date') date: string) {
+        console.log('Getting plan for date:', date);
+        return this.tasksService.getDailyPlan(req.user.id, date);
+    }
+
     @Delete(':id')
     remove(@Req() req: any, @Param('id') id: string) {
         return this.tasksService.remove(req.user.id, id);

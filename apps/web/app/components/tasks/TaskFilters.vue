@@ -59,6 +59,7 @@
                     <div class="menu-section">
                         <p class="section-label">Atajos</p>
                         <div class="quick-options">
+                            <button class="quick-btn" @click="setDateQuick('yesterday')">Ayer</button>
                             <button class="quick-btn" @click="setDateQuick('today')">Hoy</button>
                             <button class="quick-btn" @click="setDateQuick('tomorrow')">Mañana</button>
                             <button class="quick-btn" @click="setDateQuick('week')">Próx. 7 días</button>
@@ -166,7 +167,7 @@ const toggleTag = (tag: string) => {
     selectedTag.value = tag;
 };
 
-const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
+const setDateQuick = (option: 'today' | 'tomorrow' | 'week' | 'yesterday') => {
     const currentDate = toDate(new Date());
     const startDay = startOfDay(currentDate);
     const endDay = endOfDay(currentDate);
@@ -174,6 +175,10 @@ const setDateQuick = (option: 'today' | 'tomorrow' | 'week') => {
     let endDate: Date;
 
     switch (option) {
+        case 'yesterday':
+            startDate = addDays(startDay, -1);
+            endDate = addDays(endDay, -1);
+            break;
         case 'today':
             startDate = startDay;
             endDate = endDay;

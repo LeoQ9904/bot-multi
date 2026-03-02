@@ -10,4 +10,5 @@ export class UpdateTaskDto {
     scheduledAt?: string;
     startedAt?: string;
     completedAt?: string;
+    summary?: string;
 }

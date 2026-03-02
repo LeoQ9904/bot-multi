@@ -39,6 +39,7 @@ model Task {
   updatedAt   DateTime       @updatedAt
   startedAt   DateTime?
   completedAt DateTime?
+  summary     String?
   user        User           @relation(fields: [userId], references: [id])
 }
 

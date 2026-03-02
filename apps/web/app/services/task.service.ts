@@ -35,6 +35,18 @@ export class TaskService {
             headers: { Authorization: `Bearer ${token}` }
         });
     }
+
+    static async generatePlan(date: string, token: string) {
+        return ApiService.post<any>(TASK_ENDPOINTS.GENERATE_PLAN, { date }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    }
+
+    static async getPlan(date: string, token: string) {
+        return ApiService.get<any>(TASK_ENDPOINTS.GET_PLAN(date), {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+    }
 }
 
 export const useTaskService = () => {
@@ -44,5 +56,7 @@ export const useTaskService = () => {
         create: TaskService.create,
         update: TaskService.update,
         delete: TaskService.delete,
+        generatePlan: TaskService.generatePlan,
+        getPlan: TaskService.getPlan,
     };
 };

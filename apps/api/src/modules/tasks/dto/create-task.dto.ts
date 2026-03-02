@@ -7,4 +7,5 @@ export class CreateTaskDto {
     tagColor?: string;
     scheduledAt: string;
     priority?: number;
+    summary?: string;
 }

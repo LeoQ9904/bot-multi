@@ -19,7 +19,7 @@
         <div class="tasks-grid">
             <!-- Main Focus Task -->
             <div v-if="mainFocusTask" class="main-focus-card glass-panel" @click="openViewTask(mainFocusTask.id)">
-                <div class="focus-glow" :class="getProjectColorClass(mainFocusTask.project)"></div>
+                <div class="focus-glow project-aether"></div>
 
                 <div class="focus-content">
                     <div class="focus-meta">
@@ -74,7 +74,7 @@
                     </div>
                 </div>
 
-                <div class="focus-visual" :class="getProjectColorClass(mainFocusTask.project)">
+                <div class="focus-visual project-aether">
                     <div class="visual-content">
                         <div class="project-icon">
                             <span class="material-symbols-outlined">{{ getProjectIcon(mainFocusTask.project) }}</span>
@@ -131,9 +131,6 @@ const props = defineProps<{
     tasks: Task[];
 }>();
 
-// Emits are no longer needed for task actions as they are handled internally
-// defineEmits(['start', 'stop', 'preview', 'create', 'complete']);
-
 const mainFocusTask = computed(() => {
     const inProgress = props.tasks.find(t => t.status === 'in-progress');
     if (inProgress) return inProgress;
@@ -146,42 +143,10 @@ const mainFocusTask = computed(() => {
 });
 
 const secondaryTasks = computed(() => {
-    if (!mainFocusTask.value) return props.tasks.slice(0, 4);
+    if (!mainFocusTask.value) return props.tasks;
     return props.tasks
         .filter(t => t.id !== mainFocusTask.value!.id)
-        .slice(0, 4);
 });
-
-const completedTasksCount = computed(() =>
-    props.tasks.filter(t => t.status === 'completed').length
-);
-
-const totalTasksToday = computed(() => props.tasks.length);
-
-const totalTimeToday = computed(() => {
-    const total = props.tasks.reduce((acc, task) => {
-        if (!task.duration) return acc;
-        const match = task.duration.match(/(\d+)\s*(h|min)/i);
-        if (match && match[1] && match[2]) {
-            const value = parseInt(match[1]);
-            const unit = match[2].toLowerCase();
-            return acc + (unit === 'h' ? value * 60 : value);
-        }
-        return acc;
-    }, 0);
-
-    const hours = Math.floor(total / 60);
-    const mins = total % 60;
-    return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
-});
-
-const getProjectColorClass = (project?: string | null) => {
-    const colors: Record<string, string> = {
-        'Aether': 'project-aether',
-        'Nebula': 'project-nebula'
-    };
-    return colors[project || ''] || '';
-};
 
 const getStatusIcon = (status: string) => {
     const icons: Record<string, string> = {
@@ -222,8 +187,6 @@ const getCategoryIcon = (category?: string) => {
 
 const getProjectIcon = (project?: string | null) => {
     const icons: Record<string, string> = {
-        'Aether': 'wb_twilight',
-        'Nebula': 'cloud',
         'default': 'folder'
     };
     return icons[project || ''] || icons.default;

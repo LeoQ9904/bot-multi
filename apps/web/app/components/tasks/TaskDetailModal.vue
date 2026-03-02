@@ -12,8 +12,7 @@
                         <div class="ai-text-box">
                             <p class="ai-badge">Resumen de IA</p>
                             <p class="ai-text">
-                                Este es el ejemplo del resumen de la tarea, se debe que realizar la integración con el
-                                modelo de IA para que genere el resumen de la tarea.
+                                {{ task.summary }}
                             </p>
                         </div>
                     </div>

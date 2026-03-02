@@ -33,6 +33,7 @@ import DashboardRecentNotes from '~/components/dashboard/DashboardRecentNotes.vu
 import DashboardDailyContext from '~/components/dashboard/DashboardDailyContext.vue';
 import { usePushNotifications } from '~/composables/usePushNotifications';
 import HeaderPage from '~/components/HeaderPage.vue';
+import { endOfDay, startOfDay } from 'date-fns';
 
 const taskStore = useTaskStore();
 const noteStore = useNoteStore();
@@ -63,25 +64,16 @@ const currentDate = computed(() => {
   });
 });
 
-const todaysTasks = computed(() => {
-  // Combine 'Hoy' + 'In Progress' for the dashboard
-  // We can filter from taskStore.tasks directly
+const validateDate = (scheduleAt: string) => {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const scheduleDate = new Date(scheduleAt);
+  const startToday = startOfDay(today);
+  const endToday = endOfDay(today);
+  return scheduleDate >= startToday && scheduleDate <= endToday;
+}
 
-  return taskStore.tasks.filter(t => {
-    // Include if it's in progress OR scheduled for today/past
-    if (t.status === 'in-progress') return true;
-
-    const tDate = new Date(t.scheduledAt);
-    tDate.setHours(0, 0, 0, 0);
-    return tDate.getTime() <= today.getTime() && t.status !== 'completed';
-  }).sort((a, b) => {
-    // In progress first
-    if (a.status === 'in-progress') return -1;
-    if (b.status === 'in-progress') return 1;
-    return 0;
-  }).slice(0, 5);
+const todaysTasks = computed(() => {
+  return taskStore.tasks.filter(t => t.status !== 'completed' && validateDate(t.scheduledAt));
 });
 
 const recentNotes = computed(() => {

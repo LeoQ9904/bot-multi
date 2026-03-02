@@ -47,9 +47,9 @@ const confirmDeleteId = ref<string | null>(null);
 const menuItems = [
   { label: 'Inicio', icon: 'home_app_logo', path: '/' },
   { label: 'Chat', icon: 'chat', path: '/chat' },
-  { label: 'Task', icon: 'task_alt', path: '/task' },
-  { label: 'Notes', icon: 'note', path: '/notes' },
-  { label: 'Expenses', icon: 'paid', path: '/expenses' },
+  { label: 'Tareas', icon: 'task_alt', path: '/task' },
+  { label: 'Notas', icon: 'note', path: '/notes' },
+  { label: 'Gastos', icon: 'paid', path: '/expenses' },
   // { label: 'Calendar', icon: 'calendar_month', path: '/calendar' },
   // { label: 'Insights', icon: 'analytics', path: '/insights' },
 ];
