@@ -136,7 +136,7 @@ const saveIntegration = async (type: string, config: any) => {
   try {
     const token = await user.value.getIdToken();
     const response = await useIntegrationService().create(type, config, token);
-    integrations.value[type] = response.data;
+    integrations.value = { ...integrations.value, [type]: response.data };
     success(`${type} conectado exitosamente`);
   } catch (e) {
     toastError(`Error al conectar ${type}`);
@@ -163,7 +163,9 @@ const deleteIntegration = async (id: string, type: string) => {
     const token = await user.value.getIdToken();
     await useIntegrationService().delete(id, token);
     success(`${type} desconectado`);
-    integrations.value[type] = null;
+    const newIntegrations = { ...integrations.value };
+    delete newIntegrations[type];
+    integrations.value = newIntegrations;
     confirmDeleteId.value = null;
   } catch (e) {
     toastError(`Error al desconectar ${type}`);
@@ -176,6 +178,7 @@ onMounted(() => {
   if (user.value) {
     console.log('[app.vue] onMounted: User is authenticated, fetching notifications...');
     notificationStore.fetchNotifications();
+    fetchAllSettings();
   }
 });
 </script>

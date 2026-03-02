@@ -29,9 +29,12 @@ const getIntegrationText = (type: string) => {
 };
 
 const onSave = (type: string) => {
-    const config = type === 'TELEGRAM'
-        ? { token: telegramToken.value }
-        : { token: notionToken.value, databaseId: notionDbId.value };
+    let config = {};
+    if (type === 'TELEGRAM') {
+        config = { token: telegramToken.value };
+    } else if (type === 'NOTION') {
+        config = { token: notionToken.value, databaseId: notionDbId.value };
+    }
 
     emit('save', type, config);
 };
@@ -130,6 +133,48 @@ const onSave = (type: string) => {
                 </div>
             </div>
         </div>
+
+        <!-- Services -->
+        <h5 class="section-title">Servicios Predictivos</h5>
+        <div class="settings-section">
+            <!-- Daily Summary -->
+            <div class="integration-item glass">
+                <div class="int-header">
+                    <div class="int-icon daily-plan">
+                        <span class="material-symbols-outlined">event_note</span>
+                    </div>
+                    <div class="int-info">
+                        <h4>Resumen Diario</h4>
+                        <span :class="integrations['DAILY_PLAN'] ? 'status-on' : 'status-off'">
+                            {{ integrations['DAILY_PLAN'] ? 'Activado' : 'Desactivado' }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="int-actions">
+                    <button v-if="!integrations['DAILY_PLAN']" @click="onSave('DAILY_PLAN')"
+                        class="btn btn-primary btn-sm w-full" :disabled="isConnecting.DAILY_PLAN">
+                        <span class="material-symbols-outlined button-icon-sm"
+                            :class="{ spinning: isConnecting.DAILY_PLAN }">
+                            {{ isConnecting.DAILY_PLAN ? 'sync' : 'check_circle' }}
+                        </span>
+                        <span>{{ isConnecting.DAILY_PLAN ? 'Activando...' : 'Activar Servicio' }}</span>
+                    </button>
+
+                    <button v-else @click="$emit('delete', integrations['DAILY_PLAN']?.id, 'DAILY_PLAN')"
+                        class="btn btn-danger btn-sm w-full"
+                        :class="{ 'btn-confirm': confirmDeleteId === integrations['DAILY_PLAN']?.id }"
+                        :disabled="isDeleting.DAILY_PLAN">
+                        <span class="material-symbols-outlined button-icon-sm"
+                            :class="{ spinning: isDeleting.DAILY_PLAN }">
+                            {{ getIntegrationIcon('DAILY_PLAN') }}
+                        </span>
+                        <span>{{ getIntegrationText('DAILY_PLAN') }}</span>
+                    </button>
+                </div>
+                <p class="service-help">Genera automáticamente tu plan de trabajo todos los días a las 8 AM.</p>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -165,6 +210,26 @@ const onSave = (type: string) => {
 .int-icon.notion {
     background: #000;
     border: 1px solid #333;
+}
+
+.int-icon.daily-plan {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+}
+
+.section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 1.5rem 0 1rem 0;
+}
+
+.service-help {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-top: 0.75rem;
+    line-height: 1.4;
 }
 
 .int-info h4 {

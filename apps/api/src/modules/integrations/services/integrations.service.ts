@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../../../prisma.service';
+import { SchedulerService } from '../../scheduler/scheduler.service';
 
 @Injectable()
 export class IntegrationsService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @Inject(forwardRef(() => SchedulerService))
+        private readonly schedulerService: SchedulerService
+    ) { }
 
     async createOrUpdate(userId: string, type: string, config: any, name?: string) {
         console.log(`IntegrationsService: createOrUpdate for user ${userId}, type ${type}`);
@@ -11,17 +16,16 @@ export class IntegrationsService {
             where: { userId, type },
         });
 
+        let result;
         if (existing) {
             console.log(`IntegrationsService: Updating existing integration ${existing.id}`);
-            return this.prisma.integration.update({
+            result = await this.prisma.integration.update({
                 where: { id: existing.id },
-                data: { config, name },
+                data: { config, name, isActive: true },
             });
-        }
-
-        console.log(`IntegrationsService: Creating new integration record...`);
-        try {
-            const result = await this.prisma.integration.create({
+        } else {
+            console.log(`IntegrationsService: Creating new integration record...`);
+            result = await this.prisma.integration.create({
                 data: {
                     userId,
                     type,
@@ -29,12 +33,14 @@ export class IntegrationsService {
                     name,
                 },
             });
-            console.log(`IntegrationsService: Integration created with ID ${result.id}`);
-            return result;
-        } catch (error) {
-            console.error('IntegrationsService: Error creating integration:', error);
-            throw error;
         }
+
+        // Special logic for Daily Plan
+        if (type === 'DAILY_PLAN') {
+            await this.schedulerService.scheduleMonthlyDailyPlans(userId);
+        }
+
+        return result;
     }
 
     async findAll(userId: string) {
@@ -64,7 +70,12 @@ export class IntegrationsService {
     }
 
     async remove(id: string, userId: string) {
-        await this.findOne(id, userId);
+        const integration = await this.findOne(id, userId);
+
+        if (integration.type === 'DAILY_PLAN') {
+            await this.schedulerService.cancelFutureDailyPlans(userId);
+        }
+
         return this.prisma.integration.delete({
             where: { id },
         });

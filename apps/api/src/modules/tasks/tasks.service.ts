@@ -132,8 +132,10 @@ export class TasksService {
         let planJson: any;
         try {
             planJson = JSON.parse(planContent);
+            if (typeof planJson === 'object' && !planJson.raw) {
+                planJson.raw = planContent;
+            }
         } catch (e) {
-            console.error('Failed to parse AI work plan response:', planContent);
             // Fallback: just store the text if it's not valid JSON
             planJson = { raw: planContent };
         }
