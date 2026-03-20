@@ -28,38 +28,60 @@ export interface ApiError {
 /**
  * Configuración base para las peticiones
  */
-const getBaseConfig = (): UseFetchOptions<any> => {
+const getBaseConfig = (): any => {
     const config = useRuntimeConfig();
-    
+    const nuxtApp = useNuxtApp();
+
     return {
         baseURL: config.public.apiBaseUrl || 'http://127.0.0.1:8080',
 
         // Interceptor para agregar el token de autenticación
-        onRequest({ options }) {
-            const token = useCookie('auth_token').value;
+        async onRequest({ options }: any) {
+            const { $auth } = nuxtApp as any;
 
-            if (token) {
-                options.headers = {
-                    ...options.headers,
-                    Authorization: `Bearer ${token}`,
-                };
+            // Intentar obtener el token de Firebase si hay un usuario logueado
+            if ($auth?.currentUser) {
+                try {
+                    const token = await $auth.currentUser.getIdToken();
+                    if (token) {
+                        options.headers = options.headers || {};
+                        if (options.headers instanceof Headers) {
+                            options.headers.set('Authorization', `Bearer ${token}`);
+                        } else {
+                            (options.headers as any).Authorization = `Bearer ${token}`;
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Error getting Firebase ID token:', error);
+                }
+            } else {
+                // Fallback a la cookie por si acaso (aunque Firebase es la fuente de verdad)
+                const token = useCookie('auth_token').value;
+                if (token) {
+                    options.headers = options.headers || {};
+                    if (options.headers instanceof Headers) {
+                        options.headers.set('Authorization', `Bearer ${token}`);
+                    } else {
+                        (options.headers as any).Authorization = `Bearer ${token}`;
+                    }
+                }
             }
 
             // Log de la petición en desarrollo
             if (config.public.nodeEnv === 'development') {
-                console.log('🚀 API Request:', options.method, options.baseURL + (options.path || ''));
+                console.log('🚀 API Request:', options.method, options.baseURL);
             }
         },
 
         // Interceptor para manejar respuestas exitosas
-        onResponse({ response }) {
+        onResponse({ response }: any) {
             if (config.public.nodeEnv === 'development') {
                 console.log('✅ API Response:', response.status, response._data);
             }
         },
 
         // Interceptor para manejar errores
-        onResponseError({ response }) {
+        onResponseError({ response }: any) {
             const statusCode = response.status;
             const errorData = response._data;
 

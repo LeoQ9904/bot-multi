@@ -1,292 +1,326 @@
 <template>
-  <div class="expenses-wrapper">
-    <!-- Main Content -->
-    <main class="expenses-container custom-scrollbar">
-
-      <!-- Summary Card (Mesh Gradient) -->
-      <div class="summary-card mesh-gradient shadow-glow">
-        <div class="summary-icon-bg">
-          <span class="material-symbols-outlined">analytics</span>
+  <div class="page-container">
+    <div class="page-content">
+      <HeaderPage title="Mis Gastos" subtitle="Captura tus gastos e ingresos" />
+      <!-- Summary Card (Resumen de Gastos) -->
+      <section class="card-glass summary-card-modern">
+        <div class="summary-bg-glow"></div>
+        <div class="summary-grid">
+          <div class="summary-main">
+            <div>
+              <span class="summary-kicker">Resumen de Gastos</span>
+              <h1 class="summary-amount-title">
+                <span class="text-primary">${{ totalExpenses.toLocaleString() }}</span>
+                <span class="summary-limit">/ ${{ budgetLimit.toLocaleString() }}</span>
+              </h1>
+            </div>
+            <div class="summary-progress-area">
+              <div class="progress-track-modern">
+                <div class="progress-bar-modern" :style="{ width: budgetProgress + '%' }"></div>
+              </div>
+              <div class="progress-labels">
+                <span class="progress-label-left">Progreso del mes: {{ budgetProgress }}%</span>
+                <span class="progress-label-right">Te quedan ${{ (budgetLimit - totalExpenses).toLocaleString()
+                  }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="summary-stats-side">
+            <div class="stat-box-modern">
+              <p class="stat-kicker">Promedio Diario</p>
+              <p class="stat-value-modern">${{ (totalExpenses / 30).toFixed(2) }}</p>
+            </div>
+            <div class="stat-box-modern">
+              <p class="stat-kicker">Resto del Mes</p>
+              <p class="stat-value-modern">12 Días</p> <!-- ToDo: Calculate dynamically -->
+            </div>
+          </div>
         </div>
-        <div class="summary-content">
-          <p class="summary-badge">Resumen Mensual</p>
-          <div class="total-spent-row">
-            <span class="spent-label">Total gastado</span>
-            <h2 class="spent-amount">$1,245.00</h2>
-            <span class="budget-limit">de $2,000.00</span>
+      </section>
+
+      <!-- Smart Entry Grid (Entrada Inteligente) -->
+      <section class="glass-card smart-entry-container">
+        <div class="smart-entry-layout">
+          <!-- Left side (AI Prompt Area) -->
+          <div class="smart-entry-left">
+            <div class="ai-badge">
+              <span class="material-symbols-outlined ai-icon">magic_button</span>
+              <span class="ai-badge-text">Entrada Inteligente</span>
+            </div>
+
+            <div class="transaction-toggle">
+              <button @click="activeForm = 'expense'"
+                :class="['toggle-btn', { active: activeForm === 'expense' }]">GASTO</button>
+              <button @click="activeForm = 'income'"
+                :class="['toggle-btn', { active: activeForm === 'income' }]">INGRESO</button>
+            </div>
+
+            <h2 class="prompt-title">¿En qué gastaste hoy?</h2>
+
+            <div class="ai-input-wrapper-modern">
+              <textarea v-model="quickDescription" class="ai-textarea"
+                placeholder="Ej: Compré sushi para la cena con amigos por $45.00" rows="3"></textarea>
+            </div>
+            <p class="ai-hint">Aether categorizará automáticamente tu {{ activeForm === 'expense' ? 'gasto' :
+              'ingreso' }} usando IA.</p>
           </div>
 
-          <div class="budget-progress-container">
-            <div class="progress-info">
-              <span>PROGRESO DEL PRESUPUESTO</span>
-              <span>62%</span>
+          <!-- Right side (Manual Form Area) -->
+          <div class="smart-entry-right">
+            <div class="smart-field">
+              <BaseInput v-model="quickAmount" type="number" step="0.01" placeholder="0.00" label="Monto" isCurrency />
             </div>
-            <div class="progress-track">
-              <div class="progress-bar" style="width: 62%"></div>
-            </div>
-          </div>
 
-          <div class="summary-stats-grid">
-            <div class="stat-box">
-              <p class="stat-label">Resto del mes</p>
-              <p class="stat-value">$755</p>
-            </div>
-            <div class="stat-box">
-              <p class="stat-label">Promedio diario</p>
-              <p class="stat-value">$41.50</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Top Grid: Form and AI Insight -->
-      <div class="top-layout-grid">
-        <!-- Register Expense Form -->
-        <div class="card-glass register-card">
-          <div class="card-accent-border"></div>
-          <div class="card-header">
-            <div class="header-icon">
-              <span class="material-symbols-outlined">add_circle</span>
-            </div>
-            <h3>Registrar Gasto</h3>
-          </div>
-
-          <form @submit.prevent="handleSaveExpense" class="expense-form">
-            <div class="ai-input-wrapper">
-              <div class="ai-input-icon">
-                <span class="material-symbols-outlined">magic_button</span>
+            <div class="smart-field">
+              <div class="flex-between">
+                <label>Categoría</label>
+                <button @click="isPanelOpen = true" class="link-btn">Gestionar</button>
               </div>
-              <input v-model="aiExpensePrompt" type="text" class="ai-expense-input"
-                placeholder="¿En qué gastaste hoy? Ej: 'Cena con amigos $50'" />
+              <!-- Using standard select to match project style while retaining new layout structure -->
+              <select v-model="quickCategoryId" class="select-input smart-select">
+                <option value="" disabled>Seleccione...</option>
+                <option
+                  v-for="cat in (activeForm === 'expense' ? categoryStore.expenseCategories : categoryStore.incomeCategories)"
+                  :key="cat.id" :value="cat.id">
+                  {{ cat.icon }} {{ cat.name }}
+                </option>
+              </select>
             </div>
 
-            <div class="form-row">
-              <div class="field-container">
-                <label class="field-label">Monto</label>
-                <div class="amount-input-wrapper">
-                  <span class="currency-symbol">$</span>
-                  <input v-model="form.amount" type="number" step="0.01" class="amount-input" placeholder="0.00" />
-                </div>
-              </div>
+            <BaseDateTimePicker v-model="quickDate" label="FECHA Y HORA" :showQuickOptions="false" />
 
-              <div class="field-container">
-                <label class="field-label">Categoría</label>
-                <select v-model="form.category" class="select-input">
-                  <option value="Comida">🍔 Comida</option>
-                  <option value="Transporte">🚗 Transporte</option>
-                  <option value="Entretenimiento">🎬 Entretenimiento</option>
-                  <option value="Hogar">🏠 Hogar</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="field-container">
-                <label class="field-label">Vincular a Meta</label>
-                <select v-model="form.goal" class="select-input">
-                  <option value="">Ninguna</option>
-                  <option value="Vacaciones">🌴 Vacaciones Japón</option>
-                  <option value="MacBook">💻 Nuevo MacBook</option>
-                </select>
-              </div>
-              <div class="field-container">
-                <label class="field-label">Fecha</label>
-                <input v-model="form.date" type="date" class="date-input" />
-              </div>
-            </div>
-
-            <button type="submit" class="btn-primary-gradient">
-              Guardar Gasto
+            <button @click="handleQuickSubmit" class="btn-primary-gradient mt-4 shadow-glow" :disabled="loadingSubmit">
+              {{ loadingSubmit ? 'Registrando...' : (activeForm === 'expense' ? 'Registrar Gasto' : 'Registrar Ingreso')
+              }}
             </button>
-          </form>
-        </div>
-
-        <!-- AI Insight Card -->
-        <div class="card-glass ai-insight-card">
-          <div class="ai-insight-content">
-            <div class="insight-icon-box">
-              <span class="material-symbols-outlined">auto_fix_high</span>
-            </div>
-            <h4 class="insight-title">AI Insight</h4>
-            <p class="insight-text">
-              "Tu gasto en <span class="highlight-warning">Entretenimiento</span> aumentó un <span
-                class="highlight-underline">35%</span>. Podrías ahorrar <span class="highlight-primary">$120</span> este
-              mes si limitas las salidas de fin de semana."
-            </p>
-          </div>
-          <button class="btn-link-action">
-            <span>Ver plan de ahorro</span>
-            <span class="material-symbols-outlined">arrow_forward</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Bottom Grid: Categories and Goals -->
-      <div class="bottom-layout-grid">
-        <!-- Categories Breakdown -->
-        <section class="card-glass categories-card">
-          <h3 class="section-title">Por Categoría</h3>
-          <div class="categories-list">
-            <div class="category-item">
-              <div class="cat-header">
-                <div class="cat-info">
-                  <div class="cat-icon-box bg-blue">
-                    <span class="material-symbols-outlined">restaurant</span>
-                  </div>
-                  <span class="cat-name">Comida</span>
-                </div>
-                <span class="cat-amount">$485.50</span>
-              </div>
-              <div class="cat-progress-track">
-                <div class="cat-progress-bar bg-blue" style="width: 39%"></div>
-              </div>
-            </div>
-
-            <div class="category-item">
-              <div class="cat-header">
-                <div class="cat-info">
-                  <div class="cat-icon-box bg-purple">
-                    <span class="material-symbols-outlined">commute</span>
-                  </div>
-                  <span class="cat-name">Transporte</span>
-                </div>
-                <span class="cat-amount">$273.90</span>
-              </div>
-              <div class="cat-progress-track">
-                <div class="cat-progress-bar bg-purple" style="width: 22%"></div>
-              </div>
-            </div>
-
-            <div class="category-item">
-              <div class="cat-header">
-                <div class="cat-info">
-                  <div class="cat-icon-box bg-warning">
-                    <span class="material-symbols-outlined">theater_comedy</span>
-                  </div>
-                  <span class="cat-name">Entretenimiento</span>
-                  <span class="material-symbols-outlined warn-icon">warning</span>
-                </div>
-                <span class="cat-amount text-warning">$174.30</span>
-              </div>
-              <div class="cat-progress-track">
-                <div class="cat-progress-bar bg-warning" style="width: 14%"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Goal Card -->
-        <section class="goal-image-card">
-          <img src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?q=80&w=1200" alt="Japan travel"
-            class="goal-bg-img" />
-          <div class="goal-overlay"></div>
-          <div class="goal-card-content">
-            <div class="goal-badge">Meta Activa</div>
-            <div class="goal-info">
-              <h3 class="goal-title">Vacaciones a Japón</h3>
-              <p class="goal-subtitle">Faltan $1,500 para tu gran aventura en Tokyo.</p>
-              <div class="goal-progress-group">
-                <div class="goal-progress-text">
-                  <div class="goal-amounts">
-                    <span class="curr-amount">$4,500</span>
-                    <span class="target-amount">/ $6,000</span>
-                  </div>
-                  <span class="goal-percent">75%</span>
-                </div>
-                <div class="goal-progress-track">
-                  <div class="goal-progress-bar" style="width: 75%"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <!-- Trend and Recent List -->
-      <div class="trending-layout-grid">
-        <!-- Weekly Trend -->
-        <div class="card-glass trend-card">
-          <h3 class="section-title-alt">Tendencia Semanal</h3>
-          <div class="chart-container">
-            <div class="bar-group">
-              <div class="chart-bar" style="height: 40%"></div>
-            </div>
-            <div class="bar-group">
-              <div class="chart-bar" style="height: 60%"></div>
-            </div>
-            <div class="bar-group">
-              <div class="chart-bar" style="height: 45%"></div>
-            </div>
-            <div class="bar-group">
-              <div class="chart-bar active" style="height: 90%"></div>
-            </div>
-            <div class="bar-group">
-              <div class="chart-bar" style="height: 55%"></div>
-            </div>
-          </div>
-          <div class="chart-labels">
-            <span>Lun</span><span>Mar</span><span>Mie</span><span>Jue</span><span>Vie</span>
           </div>
         </div>
+      </section>
 
-        <!-- Recent Expenses -->
-        <div class="card-glass recent-card">
-          <div class="recent-header">
-            <h3 class="section-title-inline">Gastos Recientes</h3>
-            <button class="btn-text-action">Ver Historial</button>
-          </div>
-          <div class="recent-list">
-            <div class="recent-item">
-              <div class="recent-left">
-                <div class="recent-icon-box">
-                  <span class="material-symbols-outlined">lunch_dining</span>
-                </div>
-                <div class="recent-text">
-                  <p class="recent-name">Restaurante Almuerzo</p>
-                  <p class="recent-meta">Hoy, 14:30 • Comida</p>
-                </div>
+      <!-- Bottom Grid: Categories, Recent, and Insights -->
+      <div class="main-grid-layout">
+        <div class="main-content-column">
+          <!-- Categories Breakdown -->
+          <section class="glass-panel categories-panel shadow-glow">
+            <div class="panel-header">
+              <div>
+                <h3 class="font-bold text-xl">Gasto por Categoría</h3>
+                <p class="text-tertiary text-sm">Distribución de tus gastos por categoría</p>
               </div>
-              <div class="recent-right">
-                <p class="recent-amount">-$45.00</p>
-              </div>
+              <button class="link-btn-alt" @click="isPanelOpen = true">Gestionar categorías</button>
             </div>
 
-            <div class="recent-item">
-              <div class="recent-left">
-                <div class="recent-icon-box">
-                  <span class="material-symbols-outlined">coffee</span>
+            <div class="categories-cards-grid">
+              <div v-for="cat in categoryStore.allCategories" :key="cat.id" class="category-card-modern group"
+                :style="{ '--var-cat-color': cat.color || 'var(--accent-primary)' }">
+                <div class="cat-card-header">
+                  <div class="cat-icon-lg group-hover-scale"
+                    :style="{ color: 'var(--var-cat-color)', backgroundColor: `color-mix(in srgb, var(--var-cat-color) 20%, transparent)` }">
+                    <span class="category-emoji">{{ cat.icon }}</span>
+                  </div>
+                  <h4 class="cat-kicker">{{ cat.name }}</h4>
                 </div>
-                <div class="recent-text">
-                  <p class="recent-name">Starbucks Coffee</p>
-                  <p class="recent-meta">Hoy, 09:15 • Comida</p>
+                <p class="cat-card-amount">${{ getCategoryTotal(cat.id).toLocaleString() }}</p>
+                <div class="cat-progress-track-modern">
+                  <div class="cat-progress-bar-modern group-hover-glow" :style="{
+                    backgroundColor: 'var(--var-cat-color)',
+                    width: Math.min((getCategoryTotal(cat.id) / (budgetLimit || 1)) * 100, 100) + '%'
+                  }"></div>
                 </div>
               </div>
-              <div class="recent-right">
-                <p class="recent-amount">-$6.00</p>
+              <div v-if="categoryStore.allCategories.length === 0" class="empty-state">
+                No hay categorías definidas.
               </div>
             </div>
-          </div>
+          </section>
+
+          <!-- Recent Expenses -->
+          <section class="glass-panel recent-panel">
+            <div class="panel-header mb-6">
+              <div class="panel-title-with-icon">
+                <div class="title-icon-box">
+                  <span class="material-symbols-outlined">receipt_long</span>
+                </div>
+                <div>
+                  <h4 class="font-bold">Gastos Recientes</h4>
+                  <p class="text-tertiary text-xs">Tus últimos movimientos detallados</p>
+                </div>
+              </div>
+              <button class="link-btn-alt">Ver Historial</button>
+            </div>
+
+            <div class="recent-transactions-list">
+              <div v-for="item in recentTransactions" :key="item.id" class="transaction-row-modern group">
+                <div class="tx-left">
+                  <div class="tx-icon-box" :style="{
+                    color: item.type === 'GASTO' ? item.category?.color || 'var(--accent-primary)' : '#10b981',
+                    backgroundColor: `color-mix(in srgb, ${item.type === 'GASTO' ? item.category?.color || 'var(--accent-primary)' : '#10b981'} 15%, transparent)`
+                  }">
+                    <span class="material-symbols-outlined">
+                      {{ item.type === 'GASTO' ? 'shopping_cart' : 'payments' }}
+                    </span>
+                  </div>
+                  <div>
+                    <p class="tx-title">{{ item.description }}</p>
+                    <p class="tx-meta">{{ new Date(item.date).toLocaleDateString() }} • {{ item.category?.name || 'S/C'
+                      }}</p>
+                  </div>
+                </div>
+                <div class="tx-right">
+                  <p class="tx-amount" :class="{ 'text-income': item.type === 'INGRESO' }">
+                    {{ item.type === 'GASTO' ? '-' : '+' }}${{ item.amount.toLocaleString() }}
+                  </p>
+                  <div class="tx-actions group-hover-show">
+                    <button class="action-btn"><span class="material-symbols-outlined">edit</span></button>
+                    <button class="action-btn text-danger" @click="deleteTransaction(item.id, item.type)"><span
+                        class="material-symbols-outlined">delete</span></button>
+                  </div>
+                </div>
+              </div>
+              <div v-if="recentTransactions.length === 0" class="empty-state">
+                No hay transacciones recientes.
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Sidebar: AI Insights -->
+        <div class="sidebar-column">
+          <section class="ai-side-panel">
+            <div class="ai-side-bg"></div>
+            <div class="p-6 relative z-1">
+              <div class="ai-side-header">
+                <div class="ai-side-icon">
+                  <span class="material-symbols-outlined">psychology</span>
+                </div>
+                <h4 class="font-bold text-sm">Insights de Raya</h4>
+              </div>
+              <div class="ai-insights-list">
+                <div class="insight-item border-warning">
+                  <div class="insight-kicker text-warning">
+                    <span class="material-symbols-outlined text-xs">warning</span>
+                    <span>Presupuesto</span>
+                  </div>
+                  <p class="insight-text-small">
+                    <span class="font-bold text-primary">Entretenimiento</span> subió 35%.
+                  </p>
+                </div>
+                <div class="insight-item border-primary">
+                  <div class="insight-kicker text-primary">
+                    <span class="material-symbols-outlined text-xs">trending_down</span>
+                    <span>Ahorro</span>
+                  </div>
+                  <p class="insight-text-small">
+                    12% menos en <span class="font-bold text-primary">suscripciones</span>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
+    </div>
 
-    </main>
+    <!-- Categories Side Panel -->
+    <CategoryPanel :show="isPanelOpen" @close="isPanelOpen = false" @success="categoryStore.fetchCategories()" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useCategoryStore } from '~/stores/category.store';
+import { useIncomeStore } from '~/stores/income.store';
+import { useExpenseStore } from '~/stores/expense.store';
+import { useBudgetStore } from '~/stores/budget.store';
+import { useSavingsProjectionStore } from '~/stores/savings-projection.store';
 
-const aiExpensePrompt = ref('');
-const form = reactive({
-  amount: undefined,
-  category: 'Comida',
-  goal: '',
-  date: new Date().toISOString().split('T')[0]
+import CategoryPanel from '~/components/expenses/CategoryPanel.vue';
+import BaseDateTimePicker from '~/components/ui/BaseDateTimePicker.vue';
+import BaseInput from '~/components/ui/BaseInput.vue';
+import { Frequency } from '~/types/income.types';
+
+const categoryStore = useCategoryStore();
+const incomeStore = useIncomeStore();
+const expenseStore = useExpenseStore();
+const budgetStore = useBudgetStore();
+const projectionStore = useSavingsProjectionStore();
+
+const activeForm = ref('expense');
+const isPanelOpen = ref(false);
+const loadingSubmit = ref(false);
+
+const quickDescription = ref('');
+const quickAmount = ref<number>();
+const quickCategoryId = ref('');
+const quickDate = ref<Date | number>(new Date());
+
+const getCategoryTotal = (categoryId: string) => {
+  return expenseStore.allExpenses
+    .filter(e => e.categoryId === categoryId)
+    .reduce((total, e) => total + Number(e.amount), 0);
+};
+
+const handleQuickSubmit = async () => {
+  if (!quickAmount.value || !quickCategoryId.value) return;
+
+  loadingSubmit.value = true;
+  try {
+    const payload = {
+      description: quickDescription.value || (activeForm.value === 'expense' ? 'Gasto rápido' : 'Ingreso rápido'),
+      amount: Number(quickAmount.value),
+      categoryId: quickCategoryId.value,
+      date: new Date(quickDate.value).toISOString(),
+      frequency: Frequency.UNICO,
+    };
+
+    if (activeForm.value === 'expense') {
+      await expenseStore.addExpense(payload);
+    } else {
+      await incomeStore.addIncome(payload);
+    }
+
+    quickDescription.value = '';
+    quickAmount.value = undefined;
+    quickCategoryId.value = '';
+    quickDate.value = new Date();
+  } finally {
+    loadingSubmit.value = false;
+  }
+};
+
+onMounted(async () => {
+  await Promise.all([
+    categoryStore.fetchCategories(),
+    incomeStore.fetchIncomes(),
+    expenseStore.fetchExpenses(),
+    budgetStore.fetchBudgets(),
+    projectionStore.fetchProjections(),
+  ]);
 });
 
-const handleSaveExpense = () => {
-  console.log('Saving expense:', form);
-  alert('Gasto guardado correctamente (Modo Maquetación)');
+// Computed values for summary
+const totalExpenses = computed(() => expenseStore.totalExpenseAmount);
+// Simple mockup for budget limit until multiple budgets are handled properly
+const budgetLimit = computed(() => {
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
+  const budgets = budgetStore.allBudgets.filter(b => b.month === currentMonth && b.year === currentYear);
+  return budgets.reduce((total, b) => total + Number(b.limitAmount), 0) || 1;
+});
+const budgetProgress = computed(() => Math.min(Math.round((totalExpenses.value / budgetLimit.value) * 100), 100));
+
+const recentTransactions = computed(() => {
+  const e = expenseStore.allExpenses.map(item => ({ ...item, type: 'GASTO' }));
+  const i = incomeStore.allIncomes.map(item => ({ ...item, type: 'INGRESO' }));
+  return [...e, ...i].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+});
+
+const deleteTransaction = async (id: string, tipo: string) => {
+  if (tipo === 'GASTO') {
+    await expenseStore.deleteExpense(id);
+  } else {
+    await incomeStore.deleteIncome(id);
+  }
 };
 </script>
 
@@ -296,6 +330,61 @@ const handleSaveExpense = () => {
   background: var(--bg-primary);
   display: flex;
   flex-direction: column;
+}
+
+.forms-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.tabs-header {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  margin-bottom: -1px;
+  z-index: 1;
+}
+
+.tabs-header button {
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-bottom: none;
+  border-radius: 0.75rem 0.75rem 0 0;
+  color: var(--text-tertiary);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.tabs-header button.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  opacity: 1;
+  border-color: var(--accent-primary);
+  padding-bottom: 1rem;
+  transform: translateY(-2px);
+}
+
+.tab-content {
+  position: relative;
+}
+
+.category-emoji {
+  font-size: 1.25rem;
+}
+
+.text-income {
+  color: #10b981 !important;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-style: italic;
 }
 
 .expenses-container {
@@ -310,278 +399,148 @@ const handleSaveExpense = () => {
   overflow-y: auto;
 }
 
-/* ─── Mesh Gradient Summary Card ─── */
-.summary-card {
-  position: relative;
-  border-radius: 1.5rem;
+.summary-card-modern {
   padding: 2rem;
-  color: white;
+  position: relative;
   overflow: hidden;
-  min-height: 280px;
-}
-
-.mesh-gradient {
-  background: radial-gradient(at 0% 0%, #1e3a8a 0%, transparent 50%),
-    radial-gradient(at 100% 0%, #581c87 0%, transparent 50%),
-    radial-gradient(at 100% 100%, #1e40af 0%, transparent 50%),
-    radial-gradient(at 0% 100%, #312e81 0%, transparent 50%);
-  background-color: #0f172a;
-}
-
-.summary-icon-bg {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  opacity: 0.1;
-  pointer-events: none;
-}
-
-.summary-icon-bg span {
-  font-size: 10rem;
-}
-
-.summary-badge {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: #93c5fd;
-  text-transform: uppercase;
-  letter-spacing: 0.2em;
-  margin-bottom: 1rem;
-}
-
-.total-spent-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
-}
-
-.spent-label {
-  font-size: 0.875rem;
-  color: rgba(147, 197, 253, 0.7);
-  font-weight: 500;
-}
-
-.spent-amount {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 900;
-  letter-spacing: -0.02em;
-}
-
-.budget-limit {
-  font-size: 1.25rem;
-  color: rgba(147, 197, 253, 0.5);
-  font-weight: 300;
-}
-
-.budget-progress-container {
-  max-width: 450px;
+  border-radius: 1.5rem;
   margin-bottom: 2.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-.progress-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  font-weight: 800;
-  margin-bottom: 0.5rem;
-  color: #dbeafe;
-}
-
-.progress-track {
-  height: 0.75rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  overflow: hidden;
-  backdrop-filter: blur(4px);
-}
-
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #60a5fa, #a78bfa);
-  border-radius: 9999px;
-}
-
-.summary-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 1.5rem;
-}
-
-@media (min-width: 768px) {
-  .summary-stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: rgba(147, 197, 253, 0.6);
-  text-transform: uppercase;
-  margin-bottom: 0.25rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-/* ─── Glass Cards ─── */
-.card-glass {
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: 1.5rem;
-  overflow: hidden;
-}
-
-.top-layout-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-}
-
-@media (min-width: 1280px) {
-  .top-layout-grid {
-    grid-template-columns: 2fr 1fr;
-  }
-}
-
-.card-accent-border {
-  height: 0.25rem;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-purple), var(--accent-primary));
-}
-
-.card-header {
-  padding: 1.5rem 2rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.header-icon {
-  width: 2.5rem;
-  height: 2.5rem;
-  background: var(--bg-tertiary);
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-primary);
-}
-
-.card-header h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.expense-form {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.ai-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.ai-input-icon {
+.summary-bg-glow {
   position: absolute;
-  left: 1.25rem;
-  color: var(--accent-primary);
+  top: 0;
+  right: 0;
+  width: 16rem;
+  height: 16rem;
+  background: var(--accent-primary);
+  opacity: 0.05;
+  filter: blur(80px);
+  border-radius: 50%;
+  transform: translate(50%, -50%);
 }
 
-.ai-expense-input {
-  width: 100%;
-  padding: 1.25rem 1rem 1.25rem 3.5rem;
-  background: var(--bg-tertiary);
-  border: 2px solid var(--glass-border);
-  border-radius: 1.25rem;
-  color: var(--text-primary);
-  font-size: 1.125rem;
-  font-weight: 500;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.ai-expense-input:focus {
-  border-color: rgba(var(--accent-primary-rgb, 102, 126, 234), 0.5);
-  box-shadow: 0 0 0 4px var(--glow);
-}
-
-.form-row {
+.summary-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: 3rem;
+  align-items: flex-end;
+  position: relative;
+  z-index: 1;
 }
 
 @media (min-width: 768px) {
-  .form-row {
+  .summary-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-.field-container {
+.summary-main {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 1.5rem;
 }
 
-.field-label {
-  font-size: 0.75rem;
+.summary-kicker {
+  font-size: 0.625rem;
   font-weight: 700;
   color: var(--text-tertiary);
   text-transform: uppercase;
-  padding-left: 0.25rem;
+  letter-spacing: 0.2em;
+  margin-bottom: 0.5rem;
+  display: block;
 }
 
-.amount-input-wrapper {
-  position: relative;
+.summary-amount-title {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  line-height: 1;
+}
+
+.summary-limit {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-size: 1.5rem;
+}
+
+.summary-progress-area {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.currency-symbol {
-  position: absolute;
-  left: 1rem;
+.progress-track-modern {
+  width: 100%;
+  height: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: 9999px;
+  overflow: hidden;
+  padding: 0.125rem;
+  border: 1px solid var(--glass-border);
+}
+
+.progress-bar-modern {
+  height: 100%;
+  background: linear-gradient(to right, var(--accent-primary), var(--accent-purple), var(--accent-primary));
+  background-size: 200% auto;
+  border-radius: 9999px;
+  transition: all 1s ease;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.progress-label-left {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progress-label-right {
+  color: var(--accent-primary);
+}
+
+.summary-stats-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.stat-box-modern {
+  padding: 1rem;
+  background: var(--bg-tertiary);
+  border-radius: 1rem;
+  border: 1px solid var(--glass-border);
+}
+
+.stat-kicker {
+  font-size: 0.625rem;
   font-weight: 700;
   color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
 }
 
-.amount-input,
-.select-input,
-.date-input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--glass-border);
-  border-radius: 0.75rem;
-  color: var(--text-primary);
-  outline: none;
-}
-
-.amount-input {
-  padding-left: 2rem;
+.stat-value-modern {
+  font-size: 1.25rem;
   font-weight: 700;
+  color: var(--text-primary);
 }
 
-.amount-input:focus,
-.select-input:focus,
-.date-input:focus {
-  border-color: var(--accent-primary);
-}
-
+/* ─── Glass Cards ─── */
 .btn-primary-gradient {
-  margin-top: 1rem;
   width: 100%;
   padding: 1.25rem;
-  background: linear-gradient(135deg, #1e293b, #0f172a);
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
   color: white;
   font-weight: 800;
   border-radius: 1rem;
@@ -591,13 +550,224 @@ const handleSaveExpense = () => {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
 }
 
-.light-theme .btn-primary-gradient {
-  background: linear-gradient(135deg, #1e293b, #475569);
-}
-
-.btn-primary-gradient:hover {
+.btn-primary-gradient:hover:not(:disabled) {
   transform: translateY(-2px);
   filter: brightness(1.2);
+}
+
+.btn-primary-gradient:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Smart Entry Component ─── */
+.smart-entry-container {
+  overflow: hidden;
+  border-radius: 1.5rem;
+  margin-bottom: 2.5rem;
+  border: 1px solid var(--glass-border);
+  background: linear-gradient(135deg, rgba(var(--accent-primary-rgb, 99, 102, 241), 0.05) 0%, rgba(var(--accent-purple-rgb, 168, 85, 247), 0.02) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.smart-entry-layout {
+  display: flex;
+  flex-direction: column;
+  background: rgba(var(--bg-secondary-rgb, 15, 23, 42), 0.6);
+}
+
+@media (min-width: 1024px) {
+  .smart-entry-layout {
+    flex-direction: row;
+  }
+}
+
+.smart-entry-left {
+  flex: 1;
+  padding: 2rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+@media (min-width: 1024px) {
+  .smart-entry-left {
+    padding: 2.5rem;
+    border-bottom: none;
+    border-right: 1px solid var(--glass-border);
+  }
+}
+
+.ai-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ai-icon {
+  color: var(--accent-primary);
+  font-variation-settings: 'FILL' 1;
+}
+
+.ai-badge-text {
+  font-size: 0.875rem;
+  font-weight: 800;
+  background: linear-gradient(to right, var(--accent-primary), var(--accent-purple));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.transaction-toggle {
+  display: flex;
+  padding: 0.25rem;
+  background: var(--bg-tertiary);
+  border-radius: 0.75rem;
+  width: fit-content;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--glass-border);
+}
+
+.toggle-btn {
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  transition: all 0.2s;
+  color: var(--text-tertiary);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.toggle-btn.active {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.prompt-title {
+  font-size: 1.875rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.ai-input-wrapper-modern {
+  position: relative;
+}
+
+.ai-textarea {
+  width: 80%;
+  background: var(--bg-primary);
+  border: 2px solid var(--glass-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  font-size: 1.125rem;
+  color: var(--text-primary);
+  resize: none;
+  transition: all 0.2s;
+}
+
+.ai-textarea:focus {
+  border-color: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.5);
+  outline: none;
+}
+
+.ai-input-actions {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.icon-mic {
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.icon-mic:hover {
+  color: var(--text-primary);
+}
+
+.ai-hint {
+  margin-top: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.smart-entry-right {
+  width: 100%;
+  padding: 2rem;
+  background: rgba(var(--bg-tertiary-rgb, 30, 41, 59), 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .smart-entry-right {
+    width: 420px;
+    padding: 2.5rem;
+  }
+}
+
+.smart-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.smart-field label {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.smart-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.link-btn {
+  font-size: 0.625rem;
+  font-weight: 800;
+  color: var(--accent-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.smart-select,
+.smart-date {
+  background: var(--bg-tertiary);
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--glass-border);
 }
 
 /* ─── AI Insight Card ─── */
@@ -686,114 +856,367 @@ const handleSaveExpense = () => {
   gap: 0.75rem;
 }
 
-/* ─── Categories & Goal Grid ─── */
-.bottom-layout-grid {
+/* ─── Main Grid Layout ─── */
+.main-grid-layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2rem;
+  gap: 2.5rem;
 }
 
 @media (min-width: 1024px) {
-  .bottom-layout-grid {
-    grid-template-columns: 1fr 1fr;
+  .main-grid-layout {
+    grid-template-columns: 8fr 4fr;
   }
 }
 
-.categories-card {
+.main-content-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.glass-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
   padding: 2rem;
 }
 
-.section-title {
-  font-size: 1.125rem;
-  font-weight: 800;
-  margin-bottom: 2rem;
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
-.categories-list {
+.font-bold {
+  font-weight: 700;
+}
+
+.text-xl {
+  font-size: 1.25rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.text-tertiary {
+  color: var(--text-tertiary);
+}
+
+.text-primary {
+  color: var(--text-primary);
+}
+
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+.p-6 {
+  padding: 1.5rem;
+}
+
+.link-btn-alt {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.link-btn-alt:hover {
+  color: var(--accent-purple);
+}
+
+.categories-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .categories-cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.category-card-modern {
+  padding: 1.5rem;
+  border-radius: 1rem;
+  background: rgba(var(--bg-tertiary-rgb, 30, 41, 59), 0.4);
+  border: 1px solid var(--glass-border);
+  transition: all 0.2s;
+  cursor: default;
+}
+
+.category-card-modern:hover {
+  border-color: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.5);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.cat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.cat-icon-lg {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.group:hover .group-hover-scale {
+  transform: scale(1.1);
+}
+
+.cat-percent {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.cat-kicker {
+  color: var(--text-tertiary);
+  font-weight: 800;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.25rem;
+}
+
+.cat-card-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.cat-progress-track-modern {
+  height: 0.375rem;
+  width: 100%;
+  background: var(--bg-tertiary);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.cat-progress-bar-modern {
+  height: 100%;
+  border-radius: 9999px;
+  transition: all 0.2s;
+}
+
+.group:hover .group-hover-glow {
+  box-shadow: 0 0 12px var(--var-cat-color);
+}
+
+/* ─── Recent Panel ─── */
+.panel-title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.title-icon-box {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.2);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+}
+
+.recent-transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.transaction-row-modern {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(var(--bg-tertiary-rgb, 30, 41, 59), 0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  transition: all 0.2s;
+}
+
+.transaction-row-modern:hover {
+  border-color: rgba(var(--accent-primary-rgb, 99, 102, 241), 0.3);
+}
+
+.tx-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tx-icon-box {
+  width: 2.75rem;
+  height: 2.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+}
+
+.tx-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tx-meta {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.tx-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.tx-amount {
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.tx-actions {
+  display: flex;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.group:hover .group-hover-show {
+  opacity: 1;
+}
+
+.action-btn {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  color: var(--accent-primary);
+}
+
+.action-btn.text-danger:hover {
+  color: #ef4444;
+}
+
+/* ─── AI Side Panel ─── */
+.sidebar-column {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-.category-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.ai-side-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid var(--glass-border);
 }
 
-.cat-header {
+.ai-side-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom right, rgba(79, 70, 229, 0.2), rgba(147, 51, 234, 0.2));
+  z-index: 0;
+}
+
+.relative.z-1 {
+  position: relative;
+  z-index: 1;
+}
+
+.ai-side-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-}
-
-.cat-info {
-  display: flex;
-  align-items: center;
   gap: 0.75rem;
+  margin-bottom: 1.5rem;
 }
 
-.cat-icon-box {
+.ai-side-icon {
   width: 2rem;
   height: 2rem;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(8px);
+  color: var(--accent-purple);
 }
 
-.bg-blue {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+.ai-insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.bg-purple {
-  background: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
+.insight-item {
+  background: rgba(var(--bg-secondary-rgb, 15, 23, 42), 0.6);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid;
 }
 
-.bg-warning {
-  background: rgba(245, 158, 11, 0.1);
+.border-warning {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.border-primary {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.insight-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.5625rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.text-warning {
   color: #f59e0b;
 }
 
-.cat-name {
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.warn-icon {
-  font-size: 0.875rem;
-  color: var(--accent-amber);
-}
-
-.cat-amount {
-  font-size: 0.875rem;
-  font-weight: 900;
-}
-
-.cat-progress-track {
-  height: 0.625rem;
-  background: var(--bg-tertiary);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.cat-progress-bar {
-  height: 100%;
-  border-radius: 999px;
-}
-
-.cat-progress-bar.bg-blue {
-  background: #3b82f6;
-}
-
-.cat-progress-bar.bg-purple {
-  background: #a855f7;
-}
-
-.cat-progress-bar.bg-warning {
-  background: #f59e0b;
+.insight-text-small {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 /* ─── Goal Card ─── */

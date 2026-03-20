@@ -21,6 +21,131 @@ model User {
   notes         Note[]
   notifications Notification[]
   scheduledJobs ScheduledJob[]
+  categories    Category[]
+  incomes       Income[]
+  expenses      Expense[]
+  budgets       Budget[]
+  projections   SavingsProjection[]
+}
+
+enum Frequency {
+  UNICO
+  MENSUAL
+  QUINCENAL
+  SEMANAL
+  ANUAL
+}
+
+enum TransactionType {
+  GASTO
+  INGRESO
+}
+
+model Category {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  type        TransactionType
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  incomes     Income[]
+  expenses    Expense[]
+  budgets     Budget[]
+  details     ProjectionDetail[]
+
+  @@index([userId])
+}
+
+model Income {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  description String
+  amount      Decimal   @db.Decimal(12, 2)
+  source      String?
+  frequency   Frequency @default(UNICO)
+  date        DateTime
+  isRecurrent Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model Expense {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  description String
+  amount      Decimal   @db.Decimal(12, 2)
+  frequency   Frequency @default(UNICO)
+  date        DateTime
+  isRecurrent Boolean   @default(false)
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model Budget {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  limitAmount Decimal  @db.Decimal(12, 2)
+  month       Int
+  year        Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([categoryId])
+}
+
+model SavingsProjection {
+  id                       String               @id @default(uuid())
+  userId                   String
+  user                     User                 @relation(fields: [userId], references: [id])
+  name                     String
+  totalProjectedIncomes    Decimal              @db.Decimal(12, 2)
+  totalProjectedExpenses   Decimal              @db.Decimal(12, 2)
+  estimatedSavings         Decimal              @db.Decimal(12, 2)
+  startMonth               Int
+  startYear                Int
+  endMonth                 Int
+  endYear                  Int
+  notes                    String?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  details                  ProjectionDetail[]
+
+  @@index([userId])
+}
+
+model ProjectionDetail {
+  id              String             @id @default(uuid())
+  projectionId    String
+  projection      SavingsProjection  @relation(fields: [projectionId], references: [id])
+  categoryId      String
+  category        Category           @relation(fields: [categoryId], references: [id])
+  projectedAmount Decimal            @db.Decimal(12, 2)
+  type            TransactionType
+
+  @@index([projectionId])
+  @@index([categoryId])
 }
 
 model Task {

@@ -2,7 +2,7 @@
     <div class="date-picker-group">
         <label v-if="label" class="base-label">{{ label }}</label>
 
-        <div class="quick-options">
+        <div class="quick-options" v-if="showQuickOptions">
             <button v-for="opt in quickOptions" :key="opt.label" type="button" class="quick-btn"
                 :class="{ active: isQuickActive(opt.getValue()) }" @click="selectQuick(opt.getValue())">
                 {{ opt.label }}
@@ -28,6 +28,7 @@ import '@vuepic/vue-datepicker/dist/main.css';
 interface Props {
     modelValue: number | Date;
     label?: string;
+    showQuickOptions?: boolean;
 }
 
 const props = defineProps<Props>();
